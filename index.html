@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#1d4ed8" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -11,334 +11,579 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=9" />
 </head>
-<body>
-  <div class="phone-frame">
-    <!-- BARRA SUPERIOR SIMPLE Y CLARA (LETRA SIEMPRE GRANDE FIJA) -->
+<body class="is-phone-9-16">
+  <!-- AVISO DE CONFIRMACIÓN O ALERTA GRANDE ARRIBA -->
+  <div class="feedback-banner" id="feedbackBanner" role="status" aria-live="polite" hidden></div>
+
+  <!-- =====================================================================
+       1. VERSIÓN EXCLUSIVA PARA COMPUTADOR (FORMATO 16:9 HORIZONTAL)
+       Se activa automáticamente cuando la pantalla está en posición horizontal
+       ===================================================================== -->
+  <div class="pc-16-9-shell" id="pcShell">
+    <header class="pc-topbar">
+      <div class="pc-brand">
+        <span class="pc-brand-icon">🏪</span>
+        <div>
+          <h1>Mi Minimarket</h1>
+          <p>🟢 Pistola lectora activa (Enchufar y usar en cualquier menú)</p>
+        </div>
+      </div>
+
+      <!-- 4 BOTONES CON NOMBRES SIMPLES: Vender, Stock, Cargar, Resumen -->
+      <nav class="pc-topnav" aria-label="Navegación PC">
+        <button type="button" class="pc-tab-btn active" data-nav="escanear">
+          <span>🛒</span>
+          <strong>Vender</strong>
+          <em class="pc-badge green" id="pcNavCartBadge" hidden>0</em>
+        </button>
+        <button type="button" class="pc-tab-btn" data-nav="stock">
+          <span>📦</span>
+          <strong>Stock</strong>
+        </button>
+        <button type="button" class="pc-tab-btn" data-nav="editar">
+          <span>✏️</span>
+          <strong>Cargar</strong>
+        </button>
+        <button type="button" class="pc-tab-btn" data-nav="comprar">
+          <span>📊</span>
+          <strong>Resumen</strong>
+          <em class="pc-badge red" id="pcNavLowBadge" hidden>0</em>
+        </button>
+      </nav>
+    </header>
+
+    <main class="pc-workspace">
+
+      <!-- ================= PC PANTALLA 1: VENDER ================= -->
+      <section class="pc-screen active" id="pc-screen-escanear">
+        <div class="pc-pos-layout">
+          <!-- IZQUIERDA: CÁMARA ESCÁNER + LUPA DE BÚSQUEDA LIMPIA (SIN MOSTRAR TODOS LOS PRODUCTOS) -->
+          <div class="pc-pos-left">
+            <div class="pc-panel pc-scanner-strip">
+              <div class="pc-scanner-strip-left">
+                <h2>🔫 Pistola Lectora Lista (Dispara directo al código)</h2>
+                <p>Solo aprieta el gatillo de la pistola para armar la boleta al instante, o usa la cámara</p>
+              </div>
+              <button type="button" class="pc-camera-cta" id="pcOpenSaleScannerBtn">
+                📷 Usar Cámara
+              </button>
+            </div>
+
+            <!-- SOLO UNA LUPA PARA BUSCAR CUANDO LO NECESITE (NO MUESTRA PRODUCTOS SI NO ESCRIBE) -->
+            <div class="pc-panel">
+              <div class="big-search-wrap">
+                <span class="search-icon" aria-hidden="true">🔍</span>
+                <input
+                  type="search"
+                  id="pcPosSearchInput"
+                  placeholder="Buscar con la lupa por nombre o código para agregar..."
+                  aria-label="Buscar producto para vender"
+                />
+                <button type="button" class="clear-search-btn" id="pcPosClearSearchBtn" hidden>Borrar</button>
+              </div>
+              <div class="pc-pos-products-grid" id="pcPosSearchResults" hidden style="margin-top: 14px;">
+                <!-- Solo aparece cuando escribe en la lupa -->
+              </div>
+            </div>
+
+            <!-- VISOR DE ÚLTIMO PRODUCTO ESCANEADO EN PC -->
+            <div class="pc-last-scanned-bar" id="pcLastScannedBox" hidden>
+              <div class="pc-last-left">
+                <span class="pc-last-tag">ÚLTIMO ESCANEADO</span>
+                <strong class="pc-last-name" id="pcLastScannedName">Producto</strong>
+                <span class="pc-last-stock" id="pcLastScannedStock">Quedan 0</span>
+              </div>
+              <div class="pc-last-right">
+                <span>PRECIO UNITARIO</span>
+                <strong id="pcLastScannedPrice">$0</strong>
+              </div>
+            </div>
+
+            <!-- ÚLTIMAS VENTAS COBRADAS -->
+            <div class="pc-panel">
+              <div class="pc-panel-head">
+                <h3>🧾 Últimas ventas cobradas</h3>
+                <button type="button" class="undo-sale-btn" id="pcUndoLastSaleBtn" hidden>
+                  ↩️ Anular última venta
+                </button>
+              </div>
+              <div class="pc-recent-sales-grid" id="pcRecentSalesList"></div>
+            </div>
+          </div>
+
+          <!-- DERECHA: CUENTA DEL CLIENTE -->
+          <aside class="pc-pos-right">
+            <div class="pc-ticket-card">
+              <div class="pc-ticket-header">
+                <div>
+                  <h3>🛒 Cuenta del Cliente</h3>
+                  <p id="pcCartItemsSummary">0 productos en la cuenta</p>
+                </div>
+                <button type="button" class="clear-cart-btn" id="pcClearCartBtn" hidden>
+                  🗑️ Vaciar
+                </button>
+              </div>
+
+              <div class="pc-ticket-items" id="pcCartItemsList"></div>
+
+              <div class="pc-ticket-footer">
+                <div class="pc-grand-total-row">
+                  <span>TOTAL A COBRAR</span>
+                  <strong id="pcCartGrandTotal">$0</strong>
+                </div>
+                <button type="button" class="pc-confirm-sale-btn" id="pcConfirmCartSaleBtn" disabled>
+                  ✅ CONFIRMAR VENTA Y DESCONTAR
+                </button>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ================= PC PANTALLA 2: STOCK ================= -->
+      <section class="pc-screen" id="pc-screen-stock">
+        <div class="pc-panel">
+          <div class="pc-panel-head">
+            <div>
+              <span class="safe-mode-pill">🔒 MODO SOLO VER (No se modifica por error)</span>
+              <h2 style="margin-top:6px;">Stock del Minimarket</h2>
+            </div>
+            <div class="pc-stock-counter" id="pcTotalStockCounter">0 productos</div>
+          </div>
+
+          <div class="pc-table-wrap">
+            <table class="pc-stock-table">
+              <thead>
+                <tr>
+                  <th>Foto</th>
+                  <th>Producto</th>
+                  <th>Marca</th>
+                  <th>Sector</th>
+                  <th>Código</th>
+                  <th>Valor de Venta</th>
+                  <th>Vendidos (Mes)</th>
+                  <th>Cantidad Actual</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody id="pcReadOnlyTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= PC PANTALLA 3: CARGAR (PASO A PASO SIMPLE) ================= -->
+      <section class="pc-screen" id="pc-screen-editar">
+        <div class="wizard-center-container">
+          <!-- El asistente Paso a Paso se renderiza aquí (compartido y limpio) -->
+          <div id="pcWizardMount"></div>
+        </div>
+      </section>
+
+      <!-- ================= PC PANTALLA 4: RESUMEN ================= -->
+      <section class="pc-screen" id="pc-screen-comprar">
+        <div class="pc-advisor-layout">
+          <div class="pc-advisor-left">
+            <div class="smart-advisor-hero">
+              <div class="advisor-pill">🧠 RESUMEN Y COMPRA INTELIGENTE</div>
+              <h2>Resumen del Mes</h2>
+              <p>
+                Cruza <strong>lo que más se vende en el mes</strong> con <strong>lo que queda hoy</strong> para sugerirte comprar un poco más de lo justo sin que nada se venza.
+              </p>
+              <div class="month-kpis-row">
+                <div class="month-kpi-box">
+                  <span class="month-kpi-label">Vendidos este mes</span>
+                  <strong class="month-kpi-val" id="pcMonthTotalUnitsSold">0 u.</strong>
+                </div>
+                <div class="month-kpi-box">
+                  <span class="month-kpi-label">Sugeridos comprar</span>
+                  <strong class="month-kpi-val" id="pcMonthSuggestedCount">0 prod.</strong>
+                </div>
+              </div>
+              <button type="button" class="whatsapp-btn" id="pcShareListBtn">
+                📲 Copiar pedido inteligente para proveedor
+              </button>
+            </div>
+
+            <div class="pc-panel">
+              <h3>🏆 Lo que más se vende en el mes</h3>
+              <p class="pc-muted">Productos con mayor movimiento</p>
+              <div class="top-sellers-list" id="pcTopSellersList" style="margin-top:14px;"></div>
+            </div>
+          </div>
+
+          <div class="pc-advisor-right">
+            <div class="pc-panel">
+              <div class="pc-panel-head">
+                <h3>📦 Cuánto comprar de cada producto según ventas del mes</h3>
+              </div>
+              <div class="pc-recommendations-grid" id="pcSmartRecommendationsList"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- =====================================================================
+       2. VERSIÓN EXCLUSIVA PARA TELÉFONO (FORMATO 9:16 VERTICAL FIJO)
+       ===================================================================== -->
+  <div class="phone-frame" id="phoneShell">
     <header class="app-header">
       <div class="header-brand">
         <span class="store-icon" aria-hidden="true">🏪</span>
         <div>
           <h1 class="store-title">Mi Minimarket</h1>
-          <p class="store-subtitle">🟢 Guardado automático · Compatible con Teléfono y PC</p>
+          <p class="store-subtitle">Precios claros y control de stock</p>
         </div>
-      </div>
-      <div class="device-mode-badge" aria-hidden="true">
-        <span class="badge-mobile-text">📱 Vista Teléfono</span>
-        <span class="badge-desktop-text">💻 Vista Computador (Caja)</span>
       </div>
     </header>
 
-    <!-- AVISO DE CONFIRMACIÓN GRANDE ARRIBA -->
-    <div class="feedback-banner" id="feedbackBanner" role="status" aria-live="polite" hidden></div>
-
-    <!-- CONTENEDOR ADAPTATIVO: EN PC TIENE MENÚ LATERAL + PANEL ANCHO; EN TELÉFONO ES 1 COLUMNA -->
     <div class="workspace-layout">
-
-      <!-- =========================================================
-           NAVEGACIÓN: BARRA INFERIOR EN TELÉFONO / MENÚ LATERAL EN PC
-           ========================================================= -->
+      <!-- 4 BOTONES CON NOMBRES SIMPLES: Vender, Stock, Cargar, Resumen -->
       <nav class="bottom-nav" aria-label="Menú principal">
-        <div class="desktop-nav-title">Menú del Negocio</div>
-
         <button type="button" class="bottom-nav-btn active" data-nav="escanear">
           <span class="nav-icon">🛒</span>
-          <span class="nav-text">Vender en Caja</span>
+          <span class="nav-text">Vender</span>
           <span class="nav-cart-pill" id="navCartBadge" hidden>0</span>
         </button>
 
         <button type="button" class="bottom-nav-btn" data-nav="stock">
           <span class="nav-icon">📦</span>
-          <span class="nav-text">Ver Stock</span>
+          <span class="nav-text">Stock</span>
         </button>
 
         <button type="button" class="bottom-nav-btn" data-nav="editar">
           <span class="nav-icon">✏️</span>
-          <span class="nav-text">Modificar</span>
+          <span class="nav-text">Cargar</span>
         </button>
 
         <button type="button" class="bottom-nav-btn" data-nav="comprar">
           <span class="nav-icon">📊</span>
-          <span class="nav-text">Qué Comprar</span>
+          <span class="nav-text">Resumen</span>
           <span class="nav-alert-pill" id="navLowStockBadge" hidden>0</span>
         </button>
       </nav>
 
-      <!-- CONTENIDO PRINCIPAL -->
       <main class="app-main">
-
-        <!-- =========================================================
-             PANTALLA 1: VENDER CON CARRITO (EN PC: 2 COLUMNAS CAJA + CARRITO)
-             ========================================================= -->
+        <!-- TELÉFONO PANTALLA 1: VENDER (CON LUPA LIMPIA, SIN LISTA INVASIVA) -->
         <section class="screen active" id="screen-escanear" aria-label="Caja y carrito de venta">
-          <div class="pos-desktop-grid">
-            <!-- COLUMNA IZQUIERDA EN PC: ESCÁNER Y ÚLTIMAS VENTAS -->
-            <div class="pos-left-col">
-              <div class="scanner-hero-card">
-                <div class="scanner-hero-badge">CAJA Y ATENCIÓN AL CLIENTE</div>
-                <h2 class="scanner-hero-title">Escanear para la Cuenta</h2>
-                <p class="scanner-hero-desc">
-                  Escanea cada producto que lleva el cliente para ver su <strong>precio en grande</strong> e ir armando el carrito de venta.
-                </p>
+          <div class="scanner-hero-card">
+            <div class="scanner-hero-badge">CAJA Y ATENCIÓN AL CLIENTE</div>
+            <h2 class="scanner-hero-title">Escanear para Vender</h2>
+            <p class="scanner-hero-desc">
+              Escanea cada producto con la cámara o búscalo con la lupa para armar la cuenta.
+            </p>
 
-                <button type="button" class="giant-scan-btn" id="openSaleScannerBtn">
-                  <span class="scan-btn-icon" aria-hidden="true">
-                    <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
-                      <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
-                      <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
-                      <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
-                      <line x1="7" y1="8" x2="7" y2="16"></line>
-                      <line x1="10" y1="8" x2="10" y2="16"></line>
-                      <line x1="14" y1="8" x2="14" y2="16"></line>
-                      <line x1="17" y1="8" x2="17" y2="16"></line>
-                    </svg>
-                  </span>
-                  <span class="scan-btn-text">
-                    <strong>ABRIR CÁMARA ESCÁNER</strong>
-                    <small>Ver precio y sumar al carrito</small>
-                  </span>
-                </button>
+            <button type="button" class="giant-scan-btn" id="openSaleScannerBtn">
+              <span class="scan-btn-icon" aria-hidden="true">
+                <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+                  <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+                  <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+                  <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+                  <line x1="7" y1="8" x2="7" y2="16"></line>
+                  <line x1="10" y1="8" x2="10" y2="16"></line>
+                  <line x1="14" y1="8" x2="14" y2="16"></line>
+                  <line x1="17" y1="8" x2="17" y2="16"></line>
+                </svg>
+              </span>
+              <span class="scan-btn-text">
+                <strong>ABRIR CÁMARA ESCÁNER</strong>
+                <small>Ver precio y sumar al carrito</small>
+              </span>
+            </button>
 
-                <!-- ACCESO RÁPIDO A PRODUCTOS FRECUENTES SIN CÁMARA -->
-                <div class="demo-scan-box" id="quickSaleBox" hidden>
-                  <p class="demo-scan-title">👇 O toca un producto frecuente para sumarlo a la cuenta:</p>
-                  <div class="demo-scan-buttons" id="quickSaleButtons"></div>
+            <!-- SOLO UNA LUPA PARA BUSCAR (NO MUESTRA PRODUCTOS A MENOS QUE ESCRIBA) -->
+            <div class="big-search-wrap" style="background:#ffffff;">
+              <span class="search-icon" aria-hidden="true">🔍</span>
+              <input
+                type="search"
+                id="mobPosSearchInput"
+                placeholder="Buscar producto con la lupa..."
+                aria-label="Buscar producto para agregar al carrito"
+              />
+              <button type="button" class="clear-search-btn" id="mobPosClearSearchBtn" hidden>Borrar</button>
+            </div>
+            <div class="demo-scan-buttons" id="mobPosSearchResults" hidden></div>
+          </div>
+
+          <div class="last-scanned-price-card" id="lastScannedBox" hidden>
+            <div class="last-scanned-top">
+              <span class="last-scanned-tag">ÚLTIMO PRODUCTO ESCANEADO</span>
+              <span class="last-scanned-stock" id="lastScannedStock">Quedan 0</span>
+            </div>
+            <div class="last-scanned-name" id="lastScannedName">Producto</div>
+            <div class="last-scanned-price-row">
+              <span>PRECIO UNITARIO:</span>
+              <strong id="lastScannedPrice">$0</strong>
+            </div>
+          </div>
+
+          <div class="cart-card" id="cartCard">
+            <div class="cart-header">
+              <div class="cart-title-wrap">
+                <span class="cart-icon">🛒</span>
+                <div>
+                  <h3>Cuenta del Cliente</h3>
+                  <p id="cartItemsSummary">0 productos en la cuenta</p>
                 </div>
               </div>
-
-              <!-- VISOR DEL ÚLTIMO PRODUCTO ESCANEADO (PRECIO GIGANTE INMEDIATO) -->
-              <div class="last-scanned-price-card" id="lastScannedBox" hidden>
-                <div class="last-scanned-top">
-                  <span class="last-scanned-tag">ÚLTIMO PRODUCTO ESCANEADO</span>
-                  <span class="last-scanned-stock" id="lastScannedStock">Quedan 18</span>
-                </div>
-                <div class="last-scanned-name" id="lastScannedName">🥤 Coca-Cola Original 1.5L</div>
-                <div class="last-scanned-price-row">
-                  <span>PRECIO UNITARIO:</span>
-                  <strong id="lastScannedPrice">$1.800</strong>
-                </div>
-              </div>
-
-              <!-- HISTORIAL DE VENTAS GUARDADAS + BOTÓN ANULAR ÚLTIMA VENTA (EN PC VA A LA IZQUIERDA) -->
-              <div class="section-block desktop-only-history">
-                <div class="section-title-row">
-                  <h3>Últimas ventas cobradas</h3>
-                  <button type="button" class="undo-sale-btn" id="undoLastSaleBtn" hidden>
-                    ↩️ Anular última
-                  </button>
-                </div>
-                <div class="product-list" id="recentSalesList">
-                  <!-- Generado por JS -->
-                </div>
-              </div>
+              <button type="button" class="clear-cart-btn" id="clearCartBtn" hidden>
+                🗑️ Vaciar
+              </button>
             </div>
 
-            <!-- COLUMNA DERECHA EN PC: CARRITO DE VENTA SIEMPRE VISIBLE -->
-            <div class="pos-right-col">
-              <div class="cart-card" id="cartCard">
-                <div class="cart-header">
-                  <div class="cart-title-wrap">
-                    <span class="cart-icon">🛒</span>
-                    <div>
-                      <h3>Cuenta del Cliente</h3>
-                      <p id="cartItemsSummary">0 productos en la cuenta</p>
-                    </div>
-                  </div>
-                  <button type="button" class="clear-cart-btn" id="clearCartBtn" hidden>
-                    🗑️ Vaciar
-                  </button>
-                </div>
+            <div class="cart-items-list" id="cartItemsList"></div>
 
-                <div class="cart-items-list" id="cartItemsList">
-                  <!-- Generado por JS desde la base de datos local -->
-                </div>
-
-                <div class="cart-checkout-footer" id="cartCheckoutFooter" hidden>
-                  <div class="cart-grand-total-box">
-                    <span class="grand-total-label">TOTAL A COBRAR</span>
-                    <strong class="grand-total-num" id="cartGrandTotal">$0</strong>
-                  </div>
-
-                  <button type="button" class="confirm-sale-giant-btn" id="confirmCartSaleBtn">
-                    ✅ CONFIRMAR VENTA Y DESCONTAR
-                  </button>
-                </div>
+            <div class="cart-checkout-footer" id="cartCheckoutFooter" hidden>
+              <div class="cart-grand-total-box">
+                <span class="grand-total-label">TOTAL A COBRAR</span>
+                <strong class="grand-total-num" id="cartGrandTotal">$0</strong>
               </div>
+
+              <button type="button" class="confirm-sale-giant-btn" id="confirmCartSaleBtn">
+                ✅ CONFIRMAR VENTA Y DESCONTAR
+              </button>
             </div>
+          </div>
+
+          <div class="section-block">
+            <div class="section-title-row">
+              <h3>Últimas ventas cobradas</h3>
+              <button type="button" class="undo-sale-btn" id="undoLastSaleBtn" hidden>
+                ↩️ Anular última
+              </button>
+            </div>
+            <div class="product-list" id="recentSalesList"></div>
           </div>
         </section>
 
-        <!-- =========================================================
-             PANTALLA 2: VER STOCK (EN PC: GRILLA MULTICOLUMNA DE TARJETAS)
-             ========================================================= -->
+        <!-- TELÉFONO PANTALLA 2: STOCK -->
         <section class="screen" id="screen-stock" aria-label="Ver todo el stock del negocio">
           <div class="screen-top-card">
             <div class="safe-mode-pill">🔒 MODO SOLO VER (No se modifica al tocar)</div>
-            <h2>Todo lo que tiene el negocio</h2>
+            <h2>Stock del Minimarket</h2>
             <p class="screen-helper-text">
               Aquí siempre ves todos tus productos completos. Nada se oculta, se borra ni se cambia por error.
             </p>
           </div>
+          <div class="product-list" id="readOnlyStockList"></div>
+        </section>
 
-          <div class="product-list multi-col-grid" id="readOnlyStockList">
-            <!-- Generado por JS -->
+        <!-- TELÉFONO PANTALLA 3: CARGAR (PASO A PASO SIMPLE: 1. ESCANEAR -> 2. NOMBRE -> 3. VALOR) -->
+        <section class="screen" id="screen-editar" aria-label="Cargar producto paso a paso">
+          <div id="mobWizardMount">
+            <!-- El asistente Paso a Paso se monta aquí -->
           </div>
         </section>
 
-        <!-- =========================================================
-             PANTALLA 3: MODIFICAR (EN PC: 2 COLUMNAS CARGA + LISTA EDITABLE)
-             ========================================================= -->
-        <section class="screen" id="screen-editar" aria-label="Menú para modificar stock y precios">
-          <div class="two-col-desktop-grid">
-            <div class="desktop-col-left">
-              <div class="edit-hero-card">
-                <div class="edit-mode-pill">✏️ ZONA PARA MODIFICAR STOCK Y PRECIOS</div>
-                <h2>Cargar o Editar Productos</h2>
-                <p class="screen-helper-text">
-                  Escanea el código de barras o QR con la cámara para sumar mercadería que llegó, cambiar precios o registrar un producto nuevo.
-                </p>
+        <!-- TELÉFONO PANTALLA 4: RESUMEN -->
+        <section class="screen" id="screen-comprar" aria-label="Resumen de ventas y qué comprar">
+          <div class="smart-advisor-hero">
+            <div class="advisor-pill">🧠 RESUMEN Y COMPRA INTELIGENTE</div>
+            <h2>Resumen del Mes</h2>
+            <p>
+              El sistema cruza <strong>lo que más se vende en el mes</strong> con <strong>lo que queda hoy</strong> para recomendarte comprar un poco más de lo justo, pero <strong>sin pasarte para que nada se venza</strong>.
+            </p>
 
-                <button type="button" class="giant-scan-btn edit-scanner-btn" id="openEditScannerBtn">
-                  <span class="scan-btn-icon" aria-hidden="true">
-                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="3" y="3" width="7" height="7"></rect>
-                      <rect x="14" y="3" width="7" height="7"></rect>
-                      <rect x="14" y="14" width="7" height="7"></rect>
-                      <rect x="3" y="14" width="7" height="7"></rect>
-                    </svg>
-                  </span>
-                  <span class="scan-btn-text">
-                    <strong>ESCANEAR QR / CÓDIGO</strong>
-                    <small>Reconoce nombre, marca y foto solo</small>
-                  </span>
-                </button>
-
-                <button type="button" class="add-manual-full-btn" id="openNewProductBtn">
-                  ➕ Agregar producto nuevo sin escanear
-                </button>
-
-                <!-- BUSCADOR RÁPIDO EN BASE DE DATOS DE MINIMARKET CHILE -->
-                <div class="demo-scan-box">
-                  <p class="demo-scan-title">🇨🇱 Base de datos de Chile (toca o busca para cargar solo poniendo tu precio):</p>
-                  <div class="big-search-wrap" style="background:#ffffff;">
-                    <span class="search-icon" aria-hidden="true">🔍</span>
-                    <input
-                      type="search"
-                      id="chileCatalogSearchInput"
-                      placeholder="Ej: Cristal, Quix, Coca, Mistral, Confort, Arroz..."
-                      aria-label="Buscar en catálogo de Chile"
-                    />
-                  </div>
-                  <div class="demo-scan-buttons" id="chileCatalogSuggestions">
-                    <!-- Sugerencias del catálogo chileno con mini foto -->
-                  </div>
-                </div>
+            <div class="month-kpis-row">
+              <div class="month-kpi-box">
+                <span class="month-kpi-label">Vendidos este mes</span>
+                <strong class="month-kpi-val" id="monthTotalUnitsSold">0 u.</strong>
               </div>
-
-              <!-- GESTIÓN DE BASE DE DATOS LOCAL -->
-              <div class="screen-top-card db-backup-card">
-                <div class="safe-mode-pill">💾 MEMORIA DEL DISPOSITIVO</div>
-                <h3>Copia de seguridad y datos</h3>
-                <p class="screen-helper-text">
-                  Todos tus productos y ventas quedan guardados en la memoria interna de este equipo.
-                </p>
-                <div class="db-actions-stack">
-                  <button type="button" class="open-edit-item-btn" id="exportBackupBtn">
-                    📥 Guardar copia de seguridad
-                  </button>
-                  <label class="open-edit-item-btn file-label-btn">
-                    📤 Cargar copia de seguridad guardada
-                    <input type="file" id="importBackupInput" accept=".json,application/json" hidden />
-                  </label>
-                </div>
+              <div class="month-kpi-box">
+                <span class="month-kpi-label">Sugeridos hoy</span>
+                <strong class="month-kpi-val" id="monthSuggestedCount">0 prod.</strong>
               </div>
             </div>
 
-            <div class="desktop-col-right">
-              <div class="screen-top-card">
-                <h3>Elige un producto guardado para modificarlo:</h3>
-                <div class="big-search-wrap">
-                  <span class="search-icon" aria-hidden="true">🔍</span>
-                  <input
-                    type="search"
-                    id="editSearchInput"
-                    placeholder="Buscar producto para modificar..."
-                    aria-label="Buscar producto para editar"
-                  />
-                </div>
-              </div>
+            <button type="button" class="whatsapp-btn" id="shareListBtn">
+              📲 Copiar pedido inteligente para el proveedor
+            </button>
+          </div>
 
-              <div class="product-list" id="editableProductsList">
-                <!-- Generado por JS -->
+          <div class="screen-top-card">
+            <div class="advisor-section-head">
+              <span class="advisor-sec-icon">🏆</span>
+              <div>
+                <h3>Lo que más se vende en el mes</h3>
+                <p class="screen-helper-text">Productos que mueven el negocio y no pueden faltar</p>
               </div>
             </div>
+            <div class="top-sellers-list" id="topSellersList"></div>
+          </div>
+
+          <div class="section-block">
+            <div class="section-title-row">
+              <h3>📦 Cuánto comprar de cada producto</h3>
+            </div>
+            <div class="product-list" id="smartRecommendationsList"></div>
           </div>
         </section>
-
-        <!-- =========================================================
-             PANTALLA 4: QUÉ COMPRAR (EN PC: 2 COLUMNAS RESUMEN + SUGERENCIAS)
-             ========================================================= -->
-        <section class="screen" id="screen-comprar" aria-label="Recomendación inteligente de compras según ventas">
-          <div class="two-col-desktop-grid">
-            <div class="desktop-col-left">
-              <div class="smart-advisor-hero">
-                <div class="advisor-pill">🧠 CÁLCULO INTELIGENTE DEL MES</div>
-                <h2>Qué Conviene Comprar</h2>
-                <p>
-                  El sistema cruza <strong>lo que más se vende en el mes</strong> con <strong>lo que queda hoy</strong> para recomendarte comprar un poco más de lo justo, pero <strong>sin pasarte para que nada se venza</strong>.
-                </p>
-
-                <div class="month-kpis-row">
-                  <div class="month-kpi-box">
-                    <span class="month-kpi-label">Vendidos este mes</span>
-                    <strong class="month-kpi-val" id="monthTotalUnitsSold">0 u.</strong>
-                  </div>
-                  <div class="month-kpi-box">
-                    <span class="month-kpi-label">Sugeridos hoy</span>
-                    <strong class="month-kpi-val" id="monthSuggestedCount">0 prod.</strong>
-                  </div>
-                </div>
-
-                <button type="button" class="whatsapp-btn" id="shareListBtn">
-                  📲 Copiar pedido inteligente para el proveedor
-                </button>
-              </div>
-
-              <div class="screen-top-card">
-                <div class="advisor-section-head">
-                  <span class="advisor-sec-icon">🏆</span>
-                  <div>
-                    <h3>Lo que más se vende en el mes</h3>
-                    <p class="screen-helper-text">Productos que mueven el negocio y no pueden faltar</p>
-                  </div>
-                </div>
-                <div class="top-sellers-list" id="topSellersList">
-                  <!-- Generado por JS -->
-                </div>
-              </div>
-            </div>
-
-            <div class="desktop-col-right">
-              <div class="section-block">
-                <div class="section-title-row">
-                  <h3>📦 Cuánto comprar de cada producto</h3>
-                </div>
-                <div class="product-list" id="smartRecommendationsList">
-                  <!-- Generado por JS -->
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
       </main>
     </div>
   </div>
 
   <!-- ===========================================================
-       MODAL 1: CÁMARA ESCÁNER REAL DE CÓDIGO DE BARRAS Y QR
+       PLANTILLA ÚNICA DEL ASISTENTE PASO A PASO PARA "CARGAR"
+       (Se mueve automáticamente entre Teléfono y PC según posición)
+       =========================================================== -->
+  <div id="stepWizardContainer" class="wizard-card">
+    <!-- Indicador visual de los 3 pasos -->
+    <div class="wizard-steps-bar">
+      <div class="wiz-step-pill active" id="wizPill1">1. Escanear</div>
+      <div class="wiz-step-pill" id="wizPill2">2. Nombre</div>
+      <div class="wiz-step-pill" id="wizPill3">3. Valor ($)</div>
+    </div>
+
+    <!-- ==================== PASO 1: ESCANEAR EL PRODUCTO ==================== -->
+    <div class="wiz-pane" id="wizStep1">
+      <div class="wiz-step-badge">PASO 1 DE 3</div>
+      <h2 class="wiz-title">Primero: Escanea el Producto</h2>
+      <p class="wiz-desc">
+        <strong>Si tienes pistola lectora:</strong> solo aprieta el gatillo apuntando al producto y pasará solo al nombre. O toca el botón para usar la cámara:
+      </p>
+
+      <button type="button" class="giant-scan-btn edit-scanner-btn" id="wizOpenScannerBtn">
+        <span class="scan-btn-icon" aria-hidden="true">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+            <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+            <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+            <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+            <line x1="7" y1="8" x2="7" y2="16"></line>
+            <line x1="10" y1="8" x2="10" y2="16"></line>
+            <line x1="14" y1="8" x2="14" y2="16"></line>
+            <line x1="17" y1="8" x2="17" y2="16"></line>
+          </svg>
+        </span>
+        <span class="scan-btn-text">
+          <strong>TOCAR PARA ESCANEAR</strong>
+          <small>Abrir cámara para leer el código</small>
+        </span>
+      </button>
+
+      <!-- Lupa simple por si quiere buscarlo por nombre en vez de cámara -->
+      <div class="wiz-search-fallback">
+        <label for="wizSearchInput">¿No puedes escanearlo? Búscalo con la lupa:</label>
+        <div class="big-search-wrap" style="background:#ffffff;">
+          <span class="search-icon" aria-hidden="true">🔍</span>
+          <input
+            type="search"
+            id="wizSearchInput"
+            placeholder="Escribir nombre (ej: Coca, Cristal, Quix, Arroz)..."
+          />
+          <button type="button" class="clear-search-btn" id="wizClearSearchBtn" hidden>Borrar</button>
+        </div>
+        <div class="demo-scan-buttons" id="wizSearchResults" hidden style="margin-top: 10px;"></div>
+      </div>
+
+      <button type="button" class="add-manual-full-btn" id="wizManualNewBtn">
+        ➕ Producto sin código (Pasar directo al nombre →)
+      </button>
+    </div>
+
+    <!-- ==================== PASO 2: NOMBRE Y CANTIDAD ==================== -->
+    <div class="wiz-pane" id="wizStep2" hidden>
+      <div class="wiz-step-badge">PASO 2 DE 3</div>
+      <h2 class="wiz-title">Segundo: Revisa el Nombre</h2>
+
+      <div class="recognized-product-card" id="wizRecognizedCard">
+        <div class="recognized-status-pill" id="wizRecognizedPill">
+          ✨ Producto reconocido automáticamente
+        </div>
+        <div class="recognized-main-row">
+          <div class="mini-photo-wrap">
+            <img id="wizPreviewImg" class="mini-photo-img" src="" alt="Foto del producto" hidden />
+            <div id="wizPreviewEmoji" class="mini-photo-fallback">📦</div>
+          </div>
+          <div class="recognized-text-col">
+            <strong id="wizPreviewTitle">Nombre del producto</strong>
+            <span id="wizPreviewCode">Código: —</span>
+            <label class="take-photo-mini-btn">
+              📸 Tomar / Cambiar foto
+              <input type="file" id="wizPhotoInput" accept="image/*" capture="environment" hidden />
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-step">
+        <label for="wizNameInput">📝 Nombre del producto:</label>
+        <input type="text" id="wizNameInput" placeholder="Ej: Coca-Cola Original 1.5L" />
+      </div>
+
+      <div class="form-step">
+        <label for="wizStockInput">📦 ¿Cuántas unidades hay en total ahora?</label>
+        <div class="edit-stock-stepper">
+          <button type="button" class="step-btn minus" id="wizStockMinusBtn">−</button>
+          <input type="number" id="wizStockInput" inputmode="numeric" min="0" value="12" />
+          <button type="button" class="step-btn plus" id="wizStockPlusBtn">+</button>
+        </div>
+        <div class="pack-buttons-row" style="margin-top: 8px;">
+          <button type="button" class="pack-btn" data-wiz-pack="6">➕ Sumar 6</button>
+          <button type="button" class="pack-btn" data-wiz-pack="12">➕ Sumar 12</button>
+          <button type="button" class="pack-btn" data-wiz-pack="24">➕ Sumar 24</button>
+        </div>
+      </div>
+
+      <div class="wiz-nav-row">
+        <button type="button" class="close-big-btn" id="wizBackTo1Btn">
+          ← Atrás
+        </button>
+        <button type="button" class="done-full-btn" id="wizGoTo3Btn">
+          Siguiente: Poner el Valor →
+        </button>
+      </div>
+    </div>
+
+    <!-- ==================== PASO 3: PONER EL VALOR ($) Y GUARDAR ==================== -->
+    <div class="wiz-pane" id="wizStep3" hidden>
+      <div class="wiz-step-badge">PASO 3 DE 3 · ÚLTIMO PASO</div>
+      <h2 class="wiz-title">Al final: Pon el Valor de Venta</h2>
+
+      <!-- Resumen claro del producto que está a punto de guardar -->
+      <div class="wiz-final-summary">
+        <div class="mini-photo-wrap" style="width:64px;height:64px;">
+          <img id="wizStep3Img" class="mini-photo-img" src="" alt="" hidden />
+          <div id="wizStep3Emoji" class="mini-photo-fallback" style="font-size:30px;">📦</div>
+        </div>
+        <div>
+          <strong id="wizStep3Name" style="font-size:1.2rem; display:block;">Producto</strong>
+          <span id="wizStep3Stock" style="color:#475569; font-weight:700;">Cantidad: 12 unidades</span>
+        </div>
+      </div>
+
+      <div class="form-step price-highlight-step">
+        <label for="wizPriceInput">💰 ¿A qué valor lo vas a vender? ($)</label>
+        <p class="step-helper">Escribe el precio en pesos al que lo venderás al cliente</p>
+        <div class="big-price-input-wrap">
+          <span class="currency-prefix">$</span>
+          <input type="number" id="wizPriceInput" inputmode="numeric" min="0" step="10" placeholder="Ej: 1800" />
+        </div>
+      </div>
+
+      <div class="wiz-nav-row">
+        <button type="button" class="close-big-btn" id="wizBackTo2Btn">
+          ← Atrás
+        </button>
+        <button type="button" class="confirm-sale-giant-btn" id="wizSaveFinalBtn">
+          ✅ GUARDAR PRODUCTO
+        </button>
+      </div>
+
+      <button type="button" class="delete-prod-btn" id="wizDeleteExistingBtn" hidden style="margin-top:8px;">
+        🗑️ Eliminar este producto del stock
+      </button>
+    </div>
+  </div>
+
+  <!-- ===========================================================
+       MODAL DE CÁMARA ESCÁNER (COMPARTIDO)
        =========================================================== -->
   <div class="modal-backdrop" id="cameraModal" hidden role="dialog" aria-modal="true" aria-labelledby="cameraModalTitle">
     <div class="modal-sheet">
@@ -348,15 +593,14 @@
       </div>
 
       <div class="scanner-mode-indicator" id="cameraModeBanner">
-        Modo Caja: Escanea varios productos para el carrito
+        Apunta al código de barras del producto
       </div>
 
-      <!-- VISOR DE CÁMARA REAL -->
       <div class="camera-box" id="cameraBox">
         <video id="cameraVideo" playsinline muted hidden></video>
         <div class="camera-guide">
           <div class="laser-line"></div>
-          <p id="cameraStatusText">Iniciando cámara del teléfono...</p>
+          <p id="cameraStatusText">Iniciando cámara...</p>
         </div>
         <button type="button" class="torch-btn" id="toggleTorchBtn" hidden>
           🔦 Linterna
@@ -365,7 +609,6 @@
 
       <div class="camera-live-scanned" id="cameraLiveScanned" hidden></div>
 
-      <!-- INGRESAR NÚMERO A MANO -->
       <form class="manual-code-form" id="manualBarcodeForm">
         <label for="manualBarcodeInput">¿El código está borroso? Escribe el número:</label>
         <div class="manual-code-row">
@@ -385,165 +628,9 @@
     </div>
   </div>
 
-  <!-- ===========================================================
-       MODAL 2: MODIFICAR STOCK Y PRECIO (SOLO DESDE EL MENÚ EDITAR)
-       =========================================================== -->
-  <div class="modal-backdrop" id="editProductModal" hidden role="dialog" aria-modal="true" aria-labelledby="editModalProductName">
-    <div class="modal-sheet">
-      <div class="modal-top">
-        <span class="edit-pill-header">✏️ MODIFICAR PRODUCTO</span>
-        <button type="button" class="close-big-btn" data-close-modal="editProductModal">✕ Cancelar</button>
-      </div>
-
-      <div class="scanned-product-hero">
-        <div class="scanned-emoji" id="editModalEmoji">🍚</div>
-        <h3 id="editModalProductName">Arroz Grado 1 Tucapel 1kg</h3>
-        <span class="barcode-pill" id="editModalBarcode">║▌║█ 7804410009812</span>
-      </div>
-
-      <div class="form-step">
-        <label for="editModalNameInput">📝 Nombre del producto</label>
-        <input type="text" id="editModalNameInput" />
-      </div>
-
-      <!-- 1. MODIFICAR PRECIO DE VENTA -->
-      <div class="form-step price-highlight-step">
-        <label for="editModalPriceInput">💰 Precio de venta al público ($)</label>
-        <div class="big-price-input-wrap">
-          <span class="currency-prefix">$</span>
-          <input type="number" id="editModalPriceInput" inputmode="numeric" min="0" step="10" />
-        </div>
-      </div>
-
-      <!-- 2. MODIFICAR CANTIDAD DE STOCK -->
-      <div class="edit-stock-section">
-        <label for="editModalStockInput">📦 Cantidad total que hay en el negocio:</label>
-        <div class="edit-stock-stepper">
-          <button type="button" class="step-btn minus" id="editStockMinusBtn">−</button>
-          <input type="number" id="editModalStockInput" inputmode="numeric" min="0" />
-          <button type="button" class="step-btn plus" id="editStockPlusBtn">+</button>
-        </div>
-
-        <p class="helper-label">O sumar mercadería que acaba de llegar:</p>
-        <div class="pack-buttons-row">
-          <button type="button" class="pack-btn" data-edit-add="6">➕ Sumar 6</button>
-          <button type="button" class="pack-btn" data-edit-add="12">➕ Sumar 12</button>
-          <button type="button" class="pack-btn" data-edit-add="24">➕ Sumar 24</button>
-        </div>
-      </div>
-
-      <div class="modal-bottom-actions">
-        <button type="button" class="done-full-btn" id="saveEditedProductBtn">
-          💾 Guardar cambios en el teléfono
-        </button>
-        <button type="button" class="delete-prod-btn" id="deleteProductBtn">
-          🗑️ Eliminar este producto del catálogo
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===========================================================
-       MODAL 3: GUARDAR PRODUCTO NUEVO (RECONOCE NOMBRE, MARCA Y MINI FOTO)
-       =========================================================== -->
-  <div class="modal-backdrop" id="newProductModal" hidden role="dialog" aria-modal="true" aria-labelledby="newProductModalTitle">
-    <div class="modal-sheet">
-      <div class="modal-top">
-        <h3 id="newProductModalTitle">➕ Agregar Producto</h3>
-        <button type="button" class="close-big-btn" data-close-modal="newProductModal">✕ Cerrar</button>
-      </div>
-
-      <!-- TARJETA VISUAL DEL PRODUCTO RECONOCIDO AUTOMÁTICAMENTE -->
-      <div class="recognized-product-card" id="recognizedProductCard">
-        <div class="recognized-status-pill" id="recognizedStatusPill">
-          ✨ Producto reconocido en base de datos de Chile
-        </div>
-        <div class="recognized-main-row">
-          <div class="mini-photo-wrap">
-            <img id="newProdPreviewImg" class="mini-photo-img" src="" alt="Foto del producto" hidden />
-            <div id="newProdPreviewEmoji" class="mini-photo-fallback">📦</div>
-          </div>
-          <div class="recognized-text-col">
-            <strong id="recognizedNamePreview">Producto Nuevo</strong>
-            <span id="recognizedBrandPreview">Marca: —</span>
-            <label class="take-photo-mini-btn">
-              📸 Cambiar / Tomar foto
-              <input type="file" id="newProdPhotoInput" accept="image/*" capture="environment" hidden />
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <form id="newProductForm" class="simple-form">
-        <!-- 1. LO ÚNICO QUE ELLA DEBE PONER OBLIGATORIAMENTE: SU PRECIO -->
-        <div class="form-step price-highlight-step">
-          <label for="newProdPrice">1. 💰 ¿A qué precio lo vas a vender tú? ($)</label>
-          <p class="step-helper">Escribe solo el valor al que lo vendes en tu minimarket</p>
-          <div class="big-price-input-wrap">
-            <span class="currency-prefix">$</span>
-            <input type="number" id="newProdPrice" inputmode="numeric" min="0" step="10" placeholder="Ej: 1800" required />
-          </div>
-        </div>
-
-        <!-- 2. CANTIDAD QUE TIENE AHORA -->
-        <div class="form-step">
-          <label for="newProdStock">2. 📦 ¿Cuántas unidades tienes ahora?</label>
-          <div class="edit-stock-stepper">
-            <button type="button" class="step-btn minus" id="newStockMinusBtn">−</button>
-            <input type="number" id="newProdStock" inputmode="numeric" min="0" value="12" required />
-            <button type="button" class="step-btn plus" id="newStockPlusBtn">+</button>
-          </div>
-        </div>
-
-        <!-- 3. DATOS YA RECONOCIDOS (NOMBRE, MARCA, CÓDIGO Y SECTOR) -->
-        <div class="auto-filled-box">
-          <p class="auto-filled-title">✅ Datos reconocidos automáticamente (puedes corregirlos si quieres):</p>
-
-          <div class="form-step">
-            <label for="newProdName">Nombre del producto</label>
-            <input type="text" id="newProdName" placeholder="Ej: Cerveza Cristal Lata 470ml" required />
-          </div>
-
-          <div class="form-step">
-            <label for="newProdBrand">Marca</label>
-            <input type="text" id="newProdBrand" placeholder="Ej: CCU, Colún, Quix, Tucapel..." />
-          </div>
-
-          <div class="form-step">
-            <label for="newProdBarcode">Código de barras</label>
-            <div class="manual-code-row">
-              <input type="text" id="newProdBarcode" inputmode="numeric" placeholder="Ej: 7801900010016" required />
-              <button type="button" class="primary-action-btn" id="lookupCodeManualBtn">Buscar</button>
-            </div>
-          </div>
-
-          <div class="form-step">
-            <label>Sector del minimarket</label>
-            <div class="category-picker" id="newProdCategoryPicker">
-              <button type="button" class="cat-pick-btn active" data-cat="Abarrotes" data-emoji="🍚">🍚 Abarrotes</button>
-              <button type="button" class="cat-pick-btn" data-cat="Bebidas" data-emoji="🥤">🥤 Bebidas</button>
-              <button type="button" class="cat-pick-btn" data-cat="Alcohol" data-emoji="🍺">🍺 Alcohol</button>
-              <button type="button" class="cat-pick-btn" data-cat="Lácteos" data-emoji="🥛">🥛 Lácteos</button>
-              <button type="button" class="cat-pick-btn" data-cat="Pan y Dulces" data-emoji="🍪">🍪 Pan y Dulces</button>
-              <button type="button" class="cat-pick-btn" data-cat="Limpieza" data-emoji="🧹">🧹 Limpieza</button>
-            </div>
-          </div>
-        </div>
-
-        <button type="submit" class="done-full-btn">
-          ✔ Guardar con mi precio
-        </button>
-      </form>
-    </div>
-  </div>
-
-  <!-- Librería ZXing opcional para iOS/navegadores sin BarcodeDetector nativo -->
   <script src="https://unpkg.com/@zxing/library@0.21.2/umd/index.min.js" defer></script>
-  <!-- Catálogo de códigos de barra de Minimarket en Chile (Alimentos, Alcohol, Limpieza) -->
-  <script src="catalog_cl.js"></script>
-  <!-- Base de datos local del teléfono -->
-  <script src="db.js"></script>
-  <!-- Lógica principal de la aplicación -->
-  <script src="app.js"></script>
+  <script src="catalog_cl.js?v=10"></script>
+  <script src="db.js?v=10"></script>
+  <script src="app.js?v=10"></script>
 </body>
 </html>

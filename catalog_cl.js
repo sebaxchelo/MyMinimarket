@@ -298,9 +298,121 @@ async function lookupChileanProductByBarcode(rawBarcode) {
   };
 }
 
+// =========================================================================
+// BUSCADOR INTELIGENTE SIN TILDES Y TOLERANTE A FALTAS DE ORTOGRAFÍA
+// Ej: "limon" = "Limón", "colun" = "Colún", "cervesa" = "Cerveza",
+// "arros" = "Arroz", "cocacola" = "Coca-Cola", "igienico" = "Higiénico"
+// =========================================================================
+function normalizeSearchText(str) {
+  return String(str || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Quita todas las tildes y diéresis (á->a, é->e, í->i, ó->o, ú->u)
+    .toLowerCase()
+    .replace(/['’.\-_\/]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizePhoneticSpanish(str) {
+  return normalizeSearchText(str)
+    .replace(/h/g, "")
+    .replace(/v/g, "b")
+    .replace(/z/g, "s")
+    .replace(/ce/g, "se")
+    .replace(/ci/g, "si")
+    .replace(/ll/g, "y")
+    .replace(/qu/g, "k")
+    .replace(/ca/g, "ka")
+    .replace(/co/g, "ko")
+    .replace(/cu/g, "ku")
+    .replace(/(.)\1+/g, "$1");
+}
+
+// Distancia de edición (Levenshtein) para tolerar letras cambiadas o faltantes
+function editDistance(a, b) {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+
+  const matrix = [];
+  for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+  for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+  return matrix[b.length][a.length];
+}
+
+function fuzzyMatchProduct(query, ...targetFields) {
+  const cleanQuery = normalizeSearchText(query);
+  if (!cleanQuery) return true;
+
+  const combinedTarget = normalizeSearchText(targetFields.join(" "));
+  const compactTarget = combinedTarget.replace(/\s+/g, "");
+  const compactQuery = cleanQuery.replace(/\s+/g, "");
+
+  // 1. Coincidencia directa sin tildes (o sin espacios, ej: "cocacola" -> "coca cola")
+  if (combinedTarget.includes(cleanQuery) || compactTarget.includes(compactQuery)) {
+    return true;
+  }
+
+  // 2. Coincidencia fonética (b/v, s/c/z, ll/y, h muda, k/qu/c)
+  const phoneticTarget = normalizePhoneticSpanish(combinedTarget);
+  const phoneticQuery = normalizePhoneticSpanish(cleanQuery);
+  if (
+    phoneticTarget.includes(phoneticQuery) ||
+    phoneticTarget.replace(/\s+/g, "").includes(phoneticQuery.replace(/\s+/g, ""))
+  ) {
+    return true;
+  }
+
+  // 3. Coincidencia palabra por palabra tolerando errores de tipeo (1 o 2 letras mal escritas)
+  const queryWords = cleanQuery.split(" ").filter(Boolean);
+  const targetWords = combinedTarget.split(" ").filter(Boolean);
+  const phoneticTargetWords = phoneticTarget.split(" ").filter(Boolean);
+
+  return queryWords.every((qWord) => {
+    if (combinedTarget.includes(qWord)) return true;
+
+    const qPhon = normalizePhoneticSpanish(qWord);
+    if (phoneticTarget.includes(qPhon)) return true;
+
+    const maxErrors = qWord.length >= 7 ? 2 : qWord.length >= 4 ? 1 : 0;
+    if (maxErrors === 0) return false;
+
+    return (
+      targetWords.some((tWord) => {
+        const prefixSlice = tWord.slice(0, Math.min(tWord.length, qWord.length + 1));
+        return (
+          editDistance(qWord, tWord) <= maxErrors ||
+          editDistance(qWord, prefixSlice) <= maxErrors
+        );
+      }) ||
+      phoneticTargetWords.some((ptWord) => {
+        const prefixSlice = ptWord.slice(0, Math.min(ptWord.length, qPhon.length + 1));
+        return (
+          editDistance(qPhon, ptWord) <= maxErrors ||
+          editDistance(qPhon, prefixSlice) <= maxErrors
+        );
+      })
+    );
+  });
+}
+
 // Buscar sugerencias en el catálogo chileno mientras escribe o para elegir rápido
 function searchChileanCatalogSuggestions(query = "") {
-  const q = String(query || "").toLowerCase().trim();
+  const q = normalizeSearchText(query);
   const entries = Object.entries(CHILE_MINIMARKET_CATALOG).map(([barcode, item]) => ({
     barcode,
     ...item,
@@ -309,12 +421,8 @@ function searchChileanCatalogSuggestions(query = "") {
 
   if (!q) return entries.slice(0, 12);
   return entries
-    .filter(
-      (item) =>
-        item.name.toLowerCase().includes(q) ||
-        item.brand.toLowerCase().includes(q) ||
-        item.category.toLowerCase().includes(q) ||
-        item.barcode.includes(q)
+    .filter((item) =>
+      fuzzyMatchProduct(query, item.name, item.brand, item.category, item.barcode)
     )
     .slice(0, 12);
 }
@@ -323,4 +431,6 @@ window.ChileCatalog = {
   lookupByBarcode: lookupChileanProductByBarcode,
   searchSuggestions: searchChileanCatalogSuggestions,
   makeThumbSVG: makeProductThumbSVG,
+  fuzzyMatch: fuzzyMatchProduct,
+  normalizeText: normalizeSearchText,
 };

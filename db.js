@@ -217,31 +217,61 @@ class LocalMinimarketDB {
     return this.findProduct(cleanCode);
   }
 
-  // Operaciones del Carrito Persistente
+  // Operaciones del Carrito Persistente con limitador estricto de stock (nunca permite vender más de lo que hay)
   async addToCart(barcode, qty = 1) {
     const cleanCode = String(barcode).trim();
     const prod = this.state.products.find((p) => p.barcode === cleanCode);
-    if (!prod) return null;
+    if (!prod) return { error: "NOT_FOUND", product: null };
+
+    const availableStock = Math.max(0, Number(prod.stock || 0));
+    if (availableStock <= 0) {
+      return { error: "OUT_OF_STOCK", product: this.findProduct(cleanCode), available: 0 };
+    }
 
     const existing = this.state.cart.find((i) => i.barcode === cleanCode);
+    const currentInCart = existing ? Number(existing.qty || 0) : 0;
+
+    if (currentInCart + qty > availableStock) {
+      return {
+        error: "MAX_STOCK_REACHED",
+        product: this.findProduct(cleanCode),
+        available: availableStock,
+        inCart: currentInCart,
+      };
+    }
+
     if (existing) {
-      existing.qty += qty;
+      existing.qty = currentInCart + qty;
     } else {
       this.state.cart.unshift({ barcode: cleanCode, qty });
     }
     await this.persist();
-    return this.findProduct(cleanCode);
+    return { error: null, product: this.findProduct(cleanCode), inCart: currentInCart + qty };
   }
 
   async updateCartQty(barcode, delta) {
     const cleanCode = String(barcode).trim();
     const item = this.state.cart.find((i) => i.barcode === cleanCode);
-    if (!item) return;
+    if (!item) return { error: "NOT_IN_CART" };
+
+    const prod = this.state.products.find((p) => p.barcode === cleanCode);
+    const availableStock = prod ? Math.max(0, Number(prod.stock || 0)) : 0;
+
+    if (delta > 0 && item.qty + delta > availableStock) {
+      return {
+        error: "MAX_STOCK_REACHED",
+        product: this.findProduct(cleanCode),
+        available: availableStock,
+        inCart: item.qty,
+      };
+    }
+
     item.qty += delta;
     if (item.qty <= 0) {
       this.state.cart = this.state.cart.filter((i) => i.barcode !== cleanCode);
     }
     await this.persist();
+    return { error: null };
   }
 
   async removeFromCart(barcode) {

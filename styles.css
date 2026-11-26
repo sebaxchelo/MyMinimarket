@@ -52,7 +52,12 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background-color: var(--bg-page);
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
+  background-color: var(--bg-app);
   color: var(--text-dark);
   font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: var(--base-size);
@@ -61,24 +66,28 @@ body {
 
 h1, h2, h3, h4, p {
   margin: 0;
+  overflow-wrap: break-word;
 }
 
 button,
 input {
   font-family: inherit;
   font-size: inherit;
+  max-width: 100%;
 }
 
+/* En teléfono (9:16): pantalla 100% justa sin bordes laterales ni movimiento derecha-izquierda */
 .phone-frame {
-  max-width: 520px;
+  width: 100%;
+  max-width: 100%;
   min-height: 100vh;
-  margin: 0 auto;
+  margin: 0;
+  overflow-x: hidden;
   background: var(--bg-app);
   display: flex;
   flex-direction: column;
-  box-shadow: 0 0 40px rgba(15, 23, 42, 0.18);
   position: relative;
-  padding-bottom: 102px;
+  padding-bottom: 98px;
 }
 
 /* ==========================================================================
@@ -120,19 +129,27 @@ input {
 }
 
 .feedback-banner {
-  position: sticky;
-  top: 76px;
-  z-index: 35;
-  margin: 10px 14px 0;
+  position: fixed;
+  top: 82px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 28px);
+  max-width: 640px;
+  z-index: 90;
   padding: 15px 18px;
   border-radius: 16px;
   background: #15803d;
   color: #ffffff;
-  font-size: 1.02rem;
+  font-size: 1.05rem;
   font-weight: 800;
   text-align: center;
-  box-shadow: 0 10px 25px rgba(21, 128, 61, 0.35);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.3);
   animation: popIn 0.2s ease;
+}
+
+.feedback-banner.warning {
+  background: #b91c1c;
+  border: 3px solid #fecaca;
 }
 
 @keyframes popIn {
@@ -145,14 +162,19 @@ input {
    ========================================================================== */
 
 .app-main {
-  padding: 16px 14px 24px;
+  padding: 14px 12px 24px;
   flex: 1;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .screen {
   display: none;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
+  width: 100%;
+  max-width: 100%;
 }
 
 .screen.active {
@@ -307,24 +329,27 @@ input {
 
 .demo-scan-buttons {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+  width: 100%;
 }
 
 .demo-chip {
   min-height: 52px;
-  padding: 10px 12px;
+  min-width: 0;
+  padding: 10px 10px;
   border-radius: 14px;
   border: 2px solid var(--border-card);
   background: #ffffff;
   color: var(--text-dark);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 800;
   cursor: pointer;
   text-align: left;
   display: flex;
   align-items: center;
   gap: 6px;
+  overflow: hidden;
 }
 
 .demo-chip:active {
@@ -555,6 +580,129 @@ input {
   color: var(--green);
   border-color: var(--green-border);
   background: var(--green-bg);
+}
+
+.cart-step-btn:disabled {
+  background: #e2e8f0 !important;
+  border-color: #cbd5e1 !important;
+  color: #94a3b8 !important;
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+/* ==========================================================================
+   Asistente Paso a Paso en "Cargar" (1. Escanear -> 2. Nombre -> 3. Valor)
+   ========================================================================== */
+
+.wizard-center-container {
+  max-width: 640px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.wizard-card {
+  background: #ffffff;
+  border: 2px solid var(--border-card);
+  border-radius: 22px;
+  padding: 20px 18px;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.wizard-steps-bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  background: var(--bg-app);
+  padding: 6px;
+  border-radius: 16px;
+}
+
+.wiz-step-pill {
+  text-align: center;
+  padding: 10px 6px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--text-soft);
+}
+
+.wiz-step-pill.active {
+  background: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 3px 10px rgba(29, 78, 216, 0.28);
+}
+
+.wiz-step-pill.done {
+  background: var(--green-bg);
+  color: var(--green);
+}
+
+.wiz-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.wiz-pane[hidden] {
+  display: none !important;
+}
+
+.wiz-step-badge {
+  align-self: flex-start;
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 5px 12px;
+  border-radius: 999px;
+}
+
+.wiz-title {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--text-dark);
+}
+
+.wiz-desc {
+  font-size: 0.96rem;
+  color: var(--text-mid);
+  font-weight: 600;
+}
+
+.wiz-search-fallback {
+  background: var(--bg-app);
+  border: 2px dashed var(--border-strong);
+  border-radius: 18px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wiz-search-fallback label {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--text-mid);
+}
+
+.wiz-nav-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.wiz-final-summary {
+  background: var(--bg-app);
+  border: 2px solid var(--border-card);
+  border-radius: 18px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
 .cart-qty-num {
@@ -1059,179 +1207,631 @@ input {
   flex-shrink: 0;
 }
 
-/* Elementos base para el cambio móvil vs escritorio */
-.app-header {
-  justify-content: space-between;
+/* ==========================================================================
+   CONMUTACIÓN AUTOMÁTICA POR POSICIÓN:
+   - body.is-phone-9-16 (Vertical 9:16): Muestra solo #phoneShell (100% fijo sin moverse a los lados)
+   - body.is-pc-16-9 (Horizontal 16:9): Muestra solo #pcShell (Diseñado exclusivo para PC)
+   ========================================================================== */
+
+body.is-phone-9-16 .pc-16-9-shell {
+  display: none !important;
 }
 
-.device-mode-badge {
-  background: var(--primary-soft);
-  border: 2px solid var(--primary);
-  color: var(--primary-dark);
-  padding: 6px 12px;
-  border-radius: 999px;
+body.is-phone-9-16 .phone-frame {
+  display: flex !important;
+}
+
+body.is-pc-16-9 .phone-frame {
+  display: none !important;
+}
+
+body.is-pc-16-9 .pc-16-9-shell {
+  display: flex !important;
+}
+
+/* ==========================================================================
+   DISEÑO EXCLUSIVO PARA PC (16:9 PANORÁMICO DE CAJA Y ADMINISTRACIÓN)
+   ========================================================================== */
+
+body.is-pc-16-9 {
+  --base-size: 16px;
+  font-size: 16px;
+  background: #e2e8f0;
+}
+
+.pc-16-9-shell {
+  display: none;
+  flex-direction: column;
+  width: 100vw;
+  min-height: 100vh;
+  background: #e2e8f0;
+}
+
+.pc-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  height: 76px;
+  width: 100%;
+  background: #0f172a;
+  color: #ffffff;
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.18);
+}
+
+.pc-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.pc-brand-icon {
+  font-size: 32px;
+}
+
+.pc-brand h1 {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.pc-brand p {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.pc-topnav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pc-tab-btn {
+  height: 50px;
+  padding: 0 18px;
+  border-radius: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e2e8f0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.96rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pc-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+.pc-tab-btn.active {
+  background: #2563eb;
+  border-color: #60a5fa;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+}
+
+.pc-badge {
+  font-style: normal;
   font-size: 0.78rem;
   font-weight: 800;
-  white-space: nowrap;
+  padding: 2px 8px;
+  border-radius: 999px;
 }
 
-.badge-desktop-text {
+.pc-badge.green {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.pc-badge.red {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.pc-badge[hidden] {
   display: none;
 }
 
-.desktop-nav-title {
-  display: none;
+.pc-workspace {
+  flex: 1;
+  width: 100%;
+  padding: 20px 28px 28px;
 }
 
-.pos-desktop-grid,
-.pos-left-col,
-.pos-right-col,
-.two-col-desktop-grid,
-.desktop-col-left,
-.desktop-col-right {
+.pc-screen {
+  display: none;
+  width: 100%;
+}
+
+.pc-screen.active {
+  display: block;
+}
+
+/* Paneles PC */
+.pc-panel {
+  background: #ffffff;
+  border: 2px solid #cbd5e1;
+  border-radius: 18px;
+  padding: 18px 22px;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+}
+
+.pc-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.pc-panel h2 {
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.pc-panel h3 {
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.pc-muted {
+  color: #475569;
+  font-size: 0.92rem;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* PC Pantalla 1: Caja Registradora 16:9 */
+.pc-pos-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(380px, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.pc-pos-left {
   display: flex;
   flex-direction: column;
   gap: 18px;
 }
 
-/* ==========================================================================
-   MODO COMPUTADOR / ESCRITORIO (>= 960px)
-   Diseño amplio de Punto de Venta (POS) con Menú Lateral y Doble Columna
-   ========================================================================== */
+.pc-scanner-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+  border-color: #86efac;
+}
 
-@media (min-width: 960px) {
-  .phone-frame {
-    max-width: 1440px;
-    padding-bottom: 0;
-    box-shadow: none;
-    background: var(--bg-page);
-  }
+.pc-scanner-strip-left h2 {
+  font-size: 1.35rem;
+  color: #0f172a;
+}
 
-  .app-header {
-    padding: 16px 32px;
-    border-bottom: 2px solid var(--border-strong);
-  }
+.pc-scanner-strip-left p {
+  font-size: 0.92rem;
+  color: #334155;
+  font-weight: 600;
+  margin-top: 3px;
+}
 
-  .badge-mobile-text {
-    display: none;
-  }
+.pc-camera-cta {
+  height: 58px;
+  padding: 0 24px;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(135deg, #15803d 0%, #16a34a 100%);
+  color: #ffffff;
+  font-size: 1.05rem;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 6px 16px rgba(21, 128, 61, 0.28);
+}
 
-  .badge-desktop-text {
-    display: inline;
-  }
+.pc-last-scanned-bar {
+  background: #dbeafe;
+  border: 3px solid #1d4ed8;
+  border-radius: 16px;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
 
-  .workspace-layout {
-    display: grid;
-    grid-template-columns: 280px minmax(0, 1fr);
-    min-height: calc(100vh - 80px);
-    align-items: start;
-  }
+.pc-last-scanned-bar[hidden] {
+  display: none;
+}
 
-  /* La barra inferior del teléfono se transforma en un Menú Lateral Izquierdo fijo en PC */
-  .bottom-nav {
-    position: sticky;
-    top: 80px;
-    left: auto;
-    bottom: auto;
-    transform: none;
-    max-width: none;
-    width: 280px;
-    height: calc(100vh - 80px);
-    background: #ffffff;
-    border-top: none;
-    border-right: 2px solid var(--border-card);
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 24px 18px;
-    box-shadow: none;
-  }
+.pc-last-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
 
-  .desktop-nav-title {
-    display: block;
-    font-size: 0.8rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-soft);
-    padding: 0 8px 6px;
-  }
+.pc-last-tag {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #1e3a8a;
+}
 
-  .bottom-nav-btn {
-    flex-direction: row;
-    justify-content: flex-start;
-    gap: 14px;
-    padding: 16px 18px;
-    border-radius: 18px;
-    width: 100%;
-    text-align: left;
-  }
+.pc-last-name {
+  font-size: 1.3rem;
+  font-weight: 800;
+}
 
-  .nav-icon {
-    font-size: 28px;
-  }
+.pc-last-stock {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #334155;
+}
 
-  .nav-text {
-    font-size: 1.05rem;
-  }
+.pc-last-right {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+}
 
-  .nav-alert-pill,
-  .nav-cart-pill {
-    position: static;
-    margin-left: auto;
-    min-width: 28px;
-    height: 28px;
-    font-size: 0.85rem;
-  }
+.pc-last-right span {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #1e3a8a;
+}
 
-  .app-main {
-    padding: 28px 32px 48px;
-  }
+.pc-last-right strong {
+  font-size: 2.3rem;
+  font-weight: 800;
+  color: #1e3a8a;
+  line-height: 1;
+}
 
-  /* Pantalla 1 (Vender): Caja a la izquierda y Carrito del Cliente fijo a la derecha */
-  .pos-desktop-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(380px, 0.95fr);
-    gap: 24px;
-    align-items: start;
-  }
+/* Grilla de productos en Caja PC */
+.pc-pos-products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 12px;
+}
 
-  .pos-right-col {
-    position: sticky;
-    top: 104px;
-  }
+.pc-pos-prod-btn {
+  background: #f8fafc;
+  border: 2px solid #cbd5e1;
+  border-radius: 14px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.12s ease;
+}
 
-  /* Pantalla 2 (Ver Stock): Grilla amplia de 2 o 3 columnas */
-  .multi-col-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-    gap: 18px;
-  }
+.pc-pos-prod-btn:hover {
+  border-color: #1d4ed8;
+  background: #eff6ff;
+  transform: translateY(-1px);
+}
 
-  /* Pantalla 3 (Modificar) y Pantalla 4 (Qué Comprar): 2 Columnas lado a lado */
-  .two-col-desktop-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
-    gap: 24px;
-    align-items: start;
-  }
+.pc-pos-prod-meta {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
 
-  .demo-scan-buttons {
-    grid-template-columns: repeat(2, 1fr);
-  }
+.pc-pos-prod-name {
+  font-size: 0.96rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.2;
+}
 
-  /* Modales centrados como ventana en PC en vez de hoja inferior */
-  .modal-backdrop {
-    align-items: center;
-    padding: 24px;
-  }
+.pc-pos-prod-price {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #1e3a8a;
+}
 
-  .modal-sheet {
-    max-width: 620px;
-    border-radius: 26px;
-    padding: 26px 28px;
-    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35);
-  }
+.pc-pos-prod-stock {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.pc-recent-sales-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+/* Ticket / Carrito Derecha en PC */
+.pc-pos-right {
+  position: sticky;
+  top: 96px;
+}
+
+.pc-ticket-card {
+  background: #ffffff;
+  border: 3px solid #16a34a;
+  border-radius: 20px;
+  padding: 20px;
+  min-height: calc(100vh - 124px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 10px 28px rgba(21, 128, 61, 0.12);
+}
+
+.pc-ticket-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 14px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.pc-ticket-header h3 {
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.pc-ticket-header p {
+  font-size: 0.9rem;
+  color: #475569;
+  font-weight: 700;
+}
+
+.pc-ticket-items {
+  flex: 1;
+  overflow-y: auto;
+  max-height: calc(100vh - 330px);
+  padding: 14px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pc-ticket-footer {
+  padding-top: 14px;
+  border-top: 3px solid #cbd5e1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pc-grand-total-row {
+  background: #dcfce7;
+  border: 2px solid #86efac;
+  border-radius: 14px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pc-grand-total-row span {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #15803d;
+}
+
+.pc-grand-total-row strong {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #15803d;
+}
+
+.pc-confirm-sale-btn {
+  width: 100%;
+  height: 64px;
+  border-radius: 16px;
+  border: none;
+  background: linear-gradient(135deg, #15803d 0%, #16a34a 100%);
+  color: #ffffff;
+  font-size: 1.15rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pc-confirm-sale-btn:disabled {
+  background: #cbd5e1;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+/* Tablas anchas 16:9 en PC (Ver Stock y Modificar) */
+.pc-stock-counter {
+  background: #dbeafe;
+  color: #1e3a8a;
+  font-weight: 800;
+  padding: 8px 16px;
+  border-radius: 999px;
+}
+
+.pc-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.pc-stock-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.pc-stock-table th {
+  text-align: left;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 12px 14px;
+  border-bottom: 2px solid #cbd5e1;
+}
+
+.pc-stock-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: middle;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.pc-stock-table tr:hover td {
+  background: #f8fafc;
+}
+
+.pc-table-price {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #1e3a8a;
+  background: #dbeafe;
+  padding: 4px 12px;
+  border-radius: 10px;
+  display: inline-block;
+}
+
+.pc-table-qty {
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+/* PC Pantalla 3: Modificar 16:9 */
+.pc-edit-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.pc-edit-left {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.pc-edit-cta-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.pc-primary-big-btn {
+  height: 56px;
+  border-radius: 14px;
+  border: none;
+  background: #1d4ed8;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pc-secondary-big-btn {
+  height: 56px;
+  border-radius: 14px;
+  border: 2px solid #1d4ed8;
+  background: #dbeafe;
+  color: #1e3a8a;
+  font-size: 0.96rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pc-chile-db-box {
+  margin-top: 16px;
+  background: #f8fafc;
+  border: 2px dashed #94a3b8;
+  border-radius: 16px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pc-chile-db-box h4 {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #334155;
+}
+
+.pc-chile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pc-inline-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f1f5f9;
+  border: 2px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 8px 14px;
+  width: 280px;
+}
+
+.pc-inline-search input {
+  border: none;
+  background: transparent;
+  outline: none;
+  width: 100%;
+  font-weight: 700;
+}
+
+.pc-row-edit-btn {
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 2px solid #1d4ed8;
+  background: #dbeafe;
+  color: #1e3a8a;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* PC Pantalla 4: Qué Comprar 16:9 */
+.pc-advisor-layout {
+  display: grid;
+  grid-template-columns: minmax(340px, 0.85fr) minmax(0, 1.45fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.pc-advisor-left {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.pc-recommendations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+/* Modales centrados cuando está en posición PC 16:9 */
+body.is-pc-16-9 .modal-backdrop {
+  align-items: center;
+  padding: 24px;
+}
+
+body.is-pc-16-9 .modal-sheet {
+  max-width: 620px;
+  border-radius: 24px;
+  padding: 24px 28px;
 }
 
 .product-list {
@@ -1496,17 +2096,17 @@ input {
 .bottom-nav {
   position: fixed;
   bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
   width: 100%;
-  max-width: 520px;
-  height: 88px;
+  max-width: 100%;
+  height: 86px;
   background: #ffffff;
   border-top: 2px solid var(--border-card);
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  padding: 8px 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  padding: 8px 8px;
   z-index: 40;
   box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.08);
 }
