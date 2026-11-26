@@ -1,0 +1,10 @@
+{
+  "name": "Mi Minimarket — Control de Stock y Escáner",
+  "short_name": "Mi Minimarket",
+  "description": "Aplicación simple para administrar stock, precios y ventas con lector de código de barras.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f1f5f9",
+  "theme_color": "#1d4ed8",
+  "orientation": "portrait"
+}

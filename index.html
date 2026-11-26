@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <meta name="theme-color" content="#1d4ed8" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>Mi Minimarket — Control de Stock y Escáner</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="phone-frame">
+    <!-- BARRA SUPERIOR SIMPLE Y CLARA (LETRA SIEMPRE GRANDE FIJA) -->
+    <header class="app-header">
+      <div class="header-brand">
+        <span class="store-icon" aria-hidden="true">🏪</span>
+        <div>
+          <h1 class="store-title">Mi Minimarket</h1>
+          <p class="store-subtitle">🟢 Guardado automático en este teléfono</p>
+        </div>
+      </div>
+    </header>
+
+    <!-- AVISO DE CONFIRMACIÓN GRANDE ARRIBA -->
+    <div class="feedback-banner" id="feedbackBanner" role="status" aria-live="polite" hidden></div>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="app-main">
+
+      <!-- =========================================================
+           PANTALLA 1: VENDER CON CARRITO (VARIOS PRODUCTOS)
+           ========================================================= -->
+      <section class="screen active" id="screen-escanear" aria-label="Caja y carrito de venta">
+        <div class="scanner-hero-card">
+          <div class="scanner-hero-badge">CAJA Y ATENCIÓN AL CLIENTE</div>
+          <h2 class="scanner-hero-title">Escanear para la Cuenta</h2>
+          <p class="scanner-hero-desc">
+            Escanea cada producto que lleva el cliente para ver su <strong>precio en grande</strong> e ir armando el carrito de venta.
+          </p>
+
+          <button type="button" class="giant-scan-btn" id="openSaleScannerBtn">
+            <span class="scan-btn-icon" aria-hidden="true">
+              <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+                <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+                <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+                <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+                <line x1="7" y1="8" x2="7" y2="16"></line>
+                <line x1="10" y1="8" x2="10" y2="16"></line>
+                <line x1="14" y1="8" x2="14" y2="16"></line>
+                <line x1="17" y1="8" x2="17" y2="16"></line>
+              </svg>
+            </span>
+            <span class="scan-btn-text">
+              <strong>ABRIR CÁMARA ESCÁNER</strong>
+              <small>Ver precio y sumar al carrito</small>
+            </span>
+          </button>
+
+          <!-- ACCESO RÁPIDO A PRODUCTOS FRECUENTES SIN CÁMARA -->
+          <div class="demo-scan-box" id="quickSaleBox" hidden>
+            <p class="demo-scan-title">👇 O toca un producto frecuente para sumarlo a la cuenta:</p>
+            <div class="demo-scan-buttons" id="quickSaleButtons"></div>
+          </div>
+        </div>
+
+        <!-- VISOR DEL ÚLTIMO PRODUCTO ESCANEADO (PRECIO GIGANTE INMEDIATO) -->
+        <div class="last-scanned-price-card" id="lastScannedBox" hidden>
+          <div class="last-scanned-top">
+            <span class="last-scanned-tag">ÚLTIMO PRODUCTO ESCANEADO</span>
+            <span class="last-scanned-stock" id="lastScannedStock">Quedan 18</span>
+          </div>
+          <div class="last-scanned-name" id="lastScannedName">🥤 Coca-Cola Original 1.5L</div>
+          <div class="last-scanned-price-row">
+            <span>PRECIO UNITARIO:</span>
+            <strong id="lastScannedPrice">$1.800</strong>
+          </div>
+        </div>
+
+        <!-- =====================================================
+             CARRITO DE VENTA ACTUAL (CUENTA DEL CLIENTE)
+             ===================================================== -->
+        <div class="cart-card" id="cartCard">
+          <div class="cart-header">
+            <div class="cart-title-wrap">
+              <span class="cart-icon">🛒</span>
+              <div>
+                <h3>Cuenta del Cliente</h3>
+                <p id="cartItemsSummary">0 productos en la cuenta</p>
+              </div>
+            </div>
+            <button type="button" class="clear-cart-btn" id="clearCartBtn" hidden>
+              🗑️ Vaciar
+            </button>
+          </div>
+
+          <div class="cart-items-list" id="cartItemsList">
+            <!-- Generado por JS desde la base de datos local -->
+          </div>
+
+          <div class="cart-checkout-footer" id="cartCheckoutFooter" hidden>
+            <div class="cart-grand-total-box">
+              <span class="grand-total-label">TOTAL A COBRAR</span>
+              <strong class="grand-total-num" id="cartGrandTotal">$0</strong>
+            </div>
+
+            <button type="button" class="confirm-sale-giant-btn" id="confirmCartSaleBtn">
+              ✅ CONFIRMAR VENTA Y DESCONTAR
+            </button>
+          </div>
+        </div>
+
+        <!-- HISTORIAL DE VENTAS GUARDADAS + BOTÓN ANULAR ÚLTIMA VENTA -->
+        <div class="section-block">
+          <div class="section-title-row">
+            <h3>Últimas ventas cobradas</h3>
+            <button type="button" class="undo-sale-btn" id="undoLastSaleBtn" hidden>
+              ↩️ Anular última
+            </button>
+          </div>
+          <div class="product-list" id="recentSalesList">
+            <!-- Generado por JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================================================
+           PANTALLA 2: VER STOCK (SOLO LECTURA - SIEMPRE MUESTRA TODOS)
+           ========================================================= -->
+      <section class="screen" id="screen-stock" aria-label="Ver todo el stock del negocio">
+        <div class="screen-top-card">
+          <div class="safe-mode-pill">🔒 MODO SOLO VER (No se modifica al tocar)</div>
+          <h2>Todo lo que tiene el negocio</h2>
+          <p class="screen-helper-text">
+            Aquí siempre ves todos tus productos completos. Nada se oculta, se borra ni se cambia por error.
+          </p>
+        </div>
+
+        <div class="product-list" id="readOnlyStockList">
+          <!-- Generado por JS -->
+        </div>
+      </section>
+
+      <!-- =========================================================
+           PANTALLA 3: MENÚ APARTE PARA MODIFICAR / CARGAR CON QR
+           ========================================================= -->
+      <section class="screen" id="screen-editar" aria-label="Menú para modificar stock y precios">
+        <div class="edit-hero-card">
+          <div class="edit-mode-pill">✏️ ZONA PARA MODIFICAR STOCK Y PRECIOS</div>
+          <h2>Cargar o Editar Productos</h2>
+          <p class="screen-helper-text">
+            Escanea el código de barras o QR con la cámara para sumar mercadería que llegó, cambiar precios o registrar un producto nuevo.
+          </p>
+
+          <button type="button" class="giant-scan-btn edit-scanner-btn" id="openEditScannerBtn">
+            <span class="scan-btn-icon" aria-hidden="true">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+            </span>
+            <span class="scan-btn-text">
+              <strong>ESCANEAR QR / CÓDIGO</strong>
+              <small>Para editar stock o cargar nuevo</small>
+            </span>
+          </button>
+
+          <button type="button" class="add-manual-full-btn" id="openNewProductBtn">
+            ➕ Agregar producto nuevo sin escanear
+          </button>
+        </div>
+
+        <div class="screen-top-card">
+          <h3>O elige un producto de la lista para modificarlo:</h3>
+          <div class="big-search-wrap">
+            <span class="search-icon" aria-hidden="true">🔍</span>
+            <input
+              type="search"
+              id="editSearchInput"
+              placeholder="Buscar producto para modificar..."
+              aria-label="Buscar producto para editar"
+            />
+          </div>
+        </div>
+
+        <div class="product-list" id="editableProductsList">
+          <!-- Generado por JS -->
+        </div>
+
+        <!-- GESTIÓN DE BASE DE DATOS LOCAL DEL TELÉFONO -->
+        <div class="screen-top-card db-backup-card">
+          <div class="safe-mode-pill">💾 MEMORIA DEL TELÉFONO</div>
+          <h3>Copia de seguridad y datos</h3>
+          <p class="screen-helper-text">
+            Todos tus productos y ventas quedan guardados en la memoria interna de este teléfono aunque apagues el equipo.
+          </p>
+          <div class="db-actions-stack">
+            <button type="button" class="open-edit-item-btn" id="exportBackupBtn">
+              📥 Guardar copia de seguridad en el teléfono
+            </button>
+            <label class="open-edit-item-btn file-label-btn">
+              📤 Cargar copia de seguridad guardada
+              <input type="file" id="importBackupInput" accept=".json,application/json" hidden />
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================================================
+           PANTALLA 4: ASISTENTE INTELIGENTE DE COMPRA SEGÚN VENTAS DEL MES
+           ========================================================= -->
+      <section class="screen" id="screen-comprar" aria-label="Recomendación inteligente de compras según ventas">
+        <div class="smart-advisor-hero">
+          <div class="advisor-pill">🧠 CÁLCULO INTELIGENTE DEL MES</div>
+          <h2>Qué Conviene Comprar</h2>
+          <p>
+            El sistema cruza <strong>lo que más se vende en el mes</strong> con <strong>lo que queda hoy</strong> para recomendarte comprar un poco más de lo justo, pero <strong>sin pasarte para que nada se venza</strong>.
+          </p>
+
+          <div class="month-kpis-row">
+            <div class="month-kpi-box">
+              <span class="month-kpi-label">Vendidos este mes</span>
+              <strong class="month-kpi-val" id="monthTotalUnitsSold">0 u.</strong>
+            </div>
+            <div class="month-kpi-box">
+              <span class="month-kpi-label">Sugeridos hoy</span>
+              <strong class="month-kpi-val" id="monthSuggestedCount">0 prod.</strong>
+            </div>
+          </div>
+
+          <button type="button" class="whatsapp-btn" id="shareListBtn">
+            📲 Copiar pedido inteligente para el proveedor
+          </button>
+        </div>
+
+        <div class="screen-top-card">
+          <div class="advisor-section-head">
+            <span class="advisor-sec-icon">🏆</span>
+            <div>
+              <h3>Lo que más se vende en el mes</h3>
+              <p class="screen-helper-text">Productos que mueven el negocio y no pueden faltar</p>
+            </div>
+          </div>
+          <div class="top-sellers-list" id="topSellersList">
+            <!-- Generado por JS -->
+          </div>
+        </div>
+
+        <div class="section-block">
+          <div class="section-title-row">
+            <h3>📦 Cuánto comprar de cada producto</h3>
+          </div>
+          <div class="product-list" id="smartRecommendationsList">
+            <!-- Generado por JS -->
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- =========================================================
+         BARRA DE NAVEGACIÓN INFERIOR (4 SECCIONES CLARAS)
+         ========================================================= -->
+    <nav class="bottom-nav" aria-label="Menú principal">
+      <button type="button" class="bottom-nav-btn active" data-nav="escanear">
+        <span class="nav-icon">🛒</span>
+        <span class="nav-text">Vender</span>
+        <span class="nav-cart-pill" id="navCartBadge" hidden>0</span>
+      </button>
+
+      <button type="button" class="bottom-nav-btn" data-nav="stock">
+        <span class="nav-icon">📦</span>
+        <span class="nav-text">Ver Stock</span>
+      </button>
+
+      <button type="button" class="bottom-nav-btn" data-nav="editar">
+        <span class="nav-icon">✏️</span>
+        <span class="nav-text">Modificar</span>
+      </button>
+
+      <button type="button" class="bottom-nav-btn" data-nav="comprar">
+        <span class="nav-icon">📊</span>
+        <span class="nav-text">Qué Comprar</span>
+        <span class="nav-alert-pill" id="navLowStockBadge">0</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- ===========================================================
+       MODAL 1: CÁMARA ESCÁNER REAL DE CÓDIGO DE BARRAS Y QR
+       =========================================================== -->
+  <div class="modal-backdrop" id="cameraModal" hidden role="dialog" aria-modal="true" aria-labelledby="cameraModalTitle">
+    <div class="modal-sheet">
+      <div class="modal-top">
+        <h3 id="cameraModalTitle">📷 Lector de Código y QR</h3>
+        <button type="button" class="close-big-btn" data-close-modal="cameraModal">✕ Cerrar</button>
+      </div>
+
+      <div class="scanner-mode-indicator" id="cameraModeBanner">
+        Modo Caja: Escanea varios productos para el carrito
+      </div>
+
+      <!-- VISOR DE CÁMARA REAL -->
+      <div class="camera-box" id="cameraBox">
+        <video id="cameraVideo" playsinline muted hidden></video>
+        <div class="camera-guide">
+          <div class="laser-line"></div>
+          <p id="cameraStatusText">Iniciando cámara del teléfono...</p>
+        </div>
+        <button type="button" class="torch-btn" id="toggleTorchBtn" hidden>
+          🔦 Linterna
+        </button>
+      </div>
+
+      <div class="camera-live-scanned" id="cameraLiveScanned" hidden></div>
+
+      <!-- INGRESAR NÚMERO A MANO -->
+      <form class="manual-code-form" id="manualBarcodeForm">
+        <label for="manualBarcodeInput">¿El código está borroso? Escribe el número:</label>
+        <div class="manual-code-row">
+          <input
+            type="text"
+            inputmode="numeric"
+            id="manualBarcodeInput"
+            placeholder="Ej: 7801610001234"
+          />
+          <button type="submit" class="primary-action-btn">Aceptar</button>
+        </div>
+      </form>
+
+      <button type="button" class="done-full-btn" data-close-modal="cameraModal" id="cameraGoToCartBtn">
+        🛒 Ver Cuenta del Cliente
+      </button>
+    </div>
+  </div>
+
+  <!-- ===========================================================
+       MODAL 2: MODIFICAR STOCK Y PRECIO (SOLO DESDE EL MENÚ EDITAR)
+       =========================================================== -->
+  <div class="modal-backdrop" id="editProductModal" hidden role="dialog" aria-modal="true" aria-labelledby="editModalProductName">
+    <div class="modal-sheet">
+      <div class="modal-top">
+        <span class="edit-pill-header">✏️ MODIFICAR PRODUCTO</span>
+        <button type="button" class="close-big-btn" data-close-modal="editProductModal">✕ Cancelar</button>
+      </div>
+
+      <div class="scanned-product-hero">
+        <div class="scanned-emoji" id="editModalEmoji">🍚</div>
+        <h3 id="editModalProductName">Arroz Grado 1 Tucapel 1kg</h3>
+        <span class="barcode-pill" id="editModalBarcode">║▌║█ 7804410009812</span>
+      </div>
+
+      <div class="form-step">
+        <label for="editModalNameInput">📝 Nombre del producto</label>
+        <input type="text" id="editModalNameInput" />
+      </div>
+
+      <!-- 1. MODIFICAR PRECIO DE VENTA -->
+      <div class="form-step price-highlight-step">
+        <label for="editModalPriceInput">💰 Precio de venta al público ($)</label>
+        <div class="big-price-input-wrap">
+          <span class="currency-prefix">$</span>
+          <input type="number" id="editModalPriceInput" inputmode="numeric" min="0" step="10" />
+        </div>
+      </div>
+
+      <!-- 2. MODIFICAR CANTIDAD DE STOCK -->
+      <div class="edit-stock-section">
+        <label for="editModalStockInput">📦 Cantidad total que hay en el negocio:</label>
+        <div class="edit-stock-stepper">
+          <button type="button" class="step-btn minus" id="editStockMinusBtn">−</button>
+          <input type="number" id="editModalStockInput" inputmode="numeric" min="0" />
+          <button type="button" class="step-btn plus" id="editStockPlusBtn">+</button>
+        </div>
+
+        <p class="helper-label">O sumar mercadería que acaba de llegar:</p>
+        <div class="pack-buttons-row">
+          <button type="button" class="pack-btn" data-edit-add="6">➕ Sumar 6</button>
+          <button type="button" class="pack-btn" data-edit-add="12">➕ Sumar 12</button>
+          <button type="button" class="pack-btn" data-edit-add="24">➕ Sumar 24</button>
+        </div>
+      </div>
+
+      <div class="modal-bottom-actions">
+        <button type="button" class="done-full-btn" id="saveEditedProductBtn">
+          💾 Guardar cambios en el teléfono
+        </button>
+        <button type="button" class="delete-prod-btn" id="deleteProductBtn">
+          🗑️ Eliminar este producto del catálogo
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===========================================================
+       MODAL 3: GUARDAR PRODUCTO NUEVO (CON PRECIO DESTACADO)
+       =========================================================== -->
+  <div class="modal-backdrop" id="newProductModal" hidden role="dialog" aria-modal="true" aria-labelledby="newProductModalTitle">
+    <div class="modal-sheet">
+      <div class="modal-top">
+        <h3 id="newProductModalTitle">➕ Guardar Producto Nuevo</h3>
+        <button type="button" class="close-big-btn" data-close-modal="newProductModal">✕ Cerrar</button>
+      </div>
+
+      <form id="newProductForm" class="simple-form">
+        <div class="form-step">
+          <label for="newProdBarcode">1. Código de barras o QR</label>
+          <input type="text" id="newProdBarcode" inputmode="numeric" placeholder="Ej: 7809991234567" required />
+        </div>
+
+        <div class="form-step">
+          <label for="newProdName">2. Nombre del producto</label>
+          <input type="text" id="newProdName" placeholder="Ej: Aceite Maravilla 900ml" required />
+        </div>
+
+        <div class="form-step price-highlight-step">
+          <label for="newProdPrice">3. 💰 Precio de venta al cliente ($)</label>
+          <p class="step-helper">Para que cualquiera que atienda vea el valor exacto sin equivocarse</p>
+          <div class="big-price-input-wrap">
+            <span class="currency-prefix">$</span>
+            <input type="number" id="newProdPrice" inputmode="numeric" min="0" step="10" placeholder="Ej: 1800" required />
+          </div>
+        </div>
+
+        <div class="form-step">
+          <label for="newProdStock">4. ¿Cuántas unidades tienes ahora?</label>
+          <input type="number" id="newProdStock" inputmode="numeric" min="0" value="10" required />
+        </div>
+
+        <div class="form-step">
+          <label>5. ¿En qué sector va?</label>
+          <div class="category-picker" id="newProdCategoryPicker">
+            <button type="button" class="cat-pick-btn active" data-cat="Abarrotes" data-emoji="🍚">🍚 Abarrotes</button>
+            <button type="button" class="cat-pick-btn" data-cat="Bebidas" data-emoji="🥤">🥤 Bebidas</button>
+            <button type="button" class="cat-pick-btn" data-cat="Lácteos" data-emoji="🥛">🥛 Lácteos</button>
+            <button type="button" class="cat-pick-btn" data-cat="Pan y Dulces" data-emoji="🍪">🍪 Pan y Dulces</button>
+            <button type="button" class="cat-pick-btn" data-cat="Limpieza" data-emoji="🧹">🧹 Limpieza</button>
+          </div>
+        </div>
+
+        <button type="submit" class="done-full-btn">
+          ✔ Guardar en mi minimarket
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Librería ZXing opcional para iOS/navegadores sin BarcodeDetector nativo -->
+  <script src="https://unpkg.com/@zxing/library@0.21.2/umd/index.min.js" defer></script>
+  <!-- Base de datos local del teléfono -->
+  <script src="db.js"></script>
+  <!-- Lógica principal de la aplicación -->
+  <script src="app.js"></script>
+</body>
+</html>
