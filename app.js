@@ -1,13 +1,12 @@
 /* ==========================================================================
-   Mi Minimarket — Aplicación 100% Funcional con Base de Datos Local
-   y Lector Real de Códigos de Barra / QR por Cámara
+   Mi Minimarket — Aplicación Funcional con Reconocimiento Automático
+   de Códigos de Barra de Chile (Nombre, Marca, Categoría y Mini Foto)
    ========================================================================== */
 
-let activeCategory = "todos";
 let scannerMode = "sale"; // "sale" (agregar al carrito) o "edit" (modificar/crear producto)
 let currentEditProduct = null;
 
-// Variables de Cámara y Lector de Códigos Real
+// Cámara y Lector Real
 let cameraStream = null;
 let scanLoopActive = false;
 let zxingReader = null;
@@ -18,6 +17,7 @@ let lastScannedTime = 0;
 let bannerTimeout = null;
 let selectedNewCat = "Abarrotes";
 let selectedNewEmoji = "🍚";
+let currentNewProdImage = "";
 
 function formatPrice(num) {
   return "$" + Number(num || 0).toLocaleString("es-CL");
@@ -34,7 +34,6 @@ function formatRelativeTime(timestamp) {
   return d.toLocaleDateString("es-CL", { day: "2-digit", month: "short" });
 }
 
-// Sonido "bip" de supermercado + vibración suave en el teléfono
 function playScannerBeep() {
   if (navigator.vibrate) {
     try {
@@ -76,6 +75,14 @@ function getStockStatus(p) {
   return { code: "ok", cardClass: "", label: "🟢 Bien de stock" };
 }
 
+// Renderizar Mini Foto del producto (o emoji si no tiene imagen)
+function renderProductThumbHTML(p) {
+  if (p.image) {
+    return `<img src="${p.image}" alt="${p.name}" class="item-thumb-img" loading="lazy" onerror="this.style.display='none'" />`;
+  }
+  return `<div class="item-emoji" aria-hidden="true">${p.emoji || "📦"}</div>`;
+}
+
 // =========================================================================
 // MOTOR DE RECOMENDACIÓN INTELIGENTE DE COMPRA (SEGÚN VENTAS DEL MES Y VENCIMIENTO)
 // =========================================================================
@@ -107,11 +114,11 @@ function calculateSmartRestock(p) {
   }
 
   if (p.perishable) {
-    explanation = `Se vendieron ${p.soldMonth} en el mes. Como puede vencer, te recomendamos comprar ${recommendedToBuy} u. (alcanza para ~${targetDays} días con un margen extra sin que se venza).`;
+    explanation = `Se vendieron ${p.soldMonth} en el mes. Como puede vencer, te recomendamos comprar ${recommendedToBuy} u. (alcanza para ~${targetDays} días con margen sin que se venza).`;
   } else if (p.soldMonth < 12) {
-    explanation = `Sale lento (solo ${p.soldMonth} vendidos en el mes). Te recomendamos comprar apenas ${recommendedToBuy} u. para no acumular mercadería de más.`;
+    explanation = `Sale lento (${p.soldMonth} vendidos en el mes). Te recomendamos comprar solo ${recommendedToBuy} u. para no acumular mercadería de más.`;
   } else {
-    explanation = `Muy pedido (${p.soldMonth} vendidos este mes). Con ${recommendedToBuy} u. cubres 2 semanas de venta más un margen seguro para no quedarte corto.`;
+    explanation = `Muy pedido (${p.soldMonth} vendidos este mes). Con ${recommendedToBuy} u. cubres 2 semanas de venta más un margen seguro.`;
   }
 
   const urgencyScore = p.soldMonth * 2 - p.stock * 5;
@@ -129,7 +136,7 @@ function calculateSmartRestock(p) {
 }
 
 // =========================================================================
-// ACCIONES DEL CARRITO CONECTADAS A LA BASE DE DATOS LOCAL
+// ACCIONES DEL CARRITO
 // =========================================================================
 async function addProductToCart(barcode) {
   const cleanCode = String(barcode).trim();
@@ -138,7 +145,10 @@ async function addProductToCart(barcode) {
   playScannerBeep();
 
   if (!prod) {
-    showFeedback("⚠️ Ese código no está registrado. Ve al menú 'Modificar' para crearlo.");
+    // Si escanea en Caja un producto que aún no tenía precio en su local, llevarla directo a ponerle precio
+    closeModal("cameraModal");
+    await openNewProductModalWithAutoLookup(cleanCode);
+    showFeedback("🆕 Producto nuevo reconocido: solo ponle tu precio de venta");
     return;
   }
 
@@ -177,14 +187,14 @@ async function handleUndoLastSale() {
 }
 
 // =========================================================================
-// RENDERIZADO GENERAL DESDE LA BASE DE DATOS LOCAL
+// RENDERIZADO GENERAL
 // =========================================================================
 function renderAll() {
   const products = window.minimarketDB.getAllProductsWithStats();
   const saleCart = window.minimarketDB.state.cart;
   const salesHistory = window.minimarketDB.state.sales;
 
-  // Botones de acceso rápido en Caja (solo si ya hay productos guardados en el negocio)
+  // Botones de acceso rápido en Caja (solo si ya hay productos guardados)
   const top4 = [...products].sort((a, b) => b.soldMonth - a.soldMonth).slice(0, 4);
   const quickSaleBox = document.getElementById("quickSaleBox");
   const quickSaleContainer = document.getElementById("quickSaleButtons");
@@ -239,7 +249,7 @@ function renderAll() {
   if (saleCart.length === 0) {
     cartList.innerHTML = `
       <div class="cart-empty-box">
-        Escanea con la cámara o toca un producto arriba para ir armando la cuenta del cliente.
+        Escanea con la cámara para ir armando la cuenta del cliente.
       </div>
     `;
   } else {
@@ -251,9 +261,12 @@ function renderAll() {
         return `
           <div class="cart-item-row">
             <div class="cart-item-top">
-              <div>
-                <div class="cart-item-name">${prod.emoji} ${prod.name}</div>
-                <div class="cart-item-unit">Precio unitario: <strong>${formatPrice(prod.price)}</strong></div>
+              <div style="display:flex; gap:10px; align-items:center;">
+                ${renderProductThumbHTML(prod)}
+                <div>
+                  <div class="cart-item-name">${prod.name}</div>
+                  <div class="cart-item-unit">Precio unitario: <strong>${formatPrice(prod.price)}</strong></div>
+                </div>
               </div>
               <button type="button" class="cart-item-remove" data-cart-remove="${prod.barcode}">
                 ✕ Quitar
@@ -275,7 +288,7 @@ function renderAll() {
 
   document.getElementById("cartGrandTotal").textContent = formatPrice(totalCartMoney);
 
-  // Historial de últimas ventas cobradas + botón Anular última
+  // Historial de últimas ventas
   const undoBtn = document.getElementById("undoLastSaleBtn");
   undoBtn.hidden = salesHistory.length === 0;
 
@@ -312,13 +325,13 @@ function renderAll() {
       .join("");
   }
 
-  // 2. Pantalla "Ver Stock" (Solo lectura seguro: SIEMPRE muestra todos los productos sin ningún filtro)
+  // 2. Pantalla "Ver Stock" (SIEMPRE muestra todos los productos con su mini foto y precio)
   const readOnlyContainer = document.getElementById("readOnlyStockList");
   if (products.length === 0) {
     readOnlyContainer.innerHTML = `
       <div class="item-card" style="text-align:center; padding: 26px;">
         <p style="font-size:1.15rem; font-weight:800;">Tu stock está vacío</p>
-        <p style="color:#475569; margin-top:6px;">Toca abajo en <strong>✏️ Modificar</strong> para escanear y agregar tus productos reales.</p>
+        <p style="color:#475569; margin-top:6px;">Toca abajo en <strong>✏️ Modificar</strong> para escanear o elegir tus productos y ponerles tu precio.</p>
       </div>
     `;
   } else {
@@ -328,15 +341,16 @@ function renderAll() {
         return `
           <article class="item-card ${st.cardClass}">
             <div class="item-top">
-              <div class="item-emoji" aria-hidden="true">${p.emoji}</div>
+              ${renderProductThumbHTML(p)}
               <div class="item-info">
                 <h4 class="item-name">${p.name}</h4>
+                ${p.brand ? `<span class="item-brand-pill">Marca: ${p.brand}</span>` : ""}
                 <div class="item-price-box">
                   <span class="item-price-label">PRECIO:</span>
                   <strong class="item-price-value">${formatPrice(p.price)}</strong>
                 </div>
                 <div class="item-sub">
-                  <span>Cód: ${p.barcode}</span>
+                  <span>${p.category}</span>
                   <span>· Vendidos mes: <strong>${p.soldMonth} u.</strong></span>
                 </div>
               </div>
@@ -351,21 +365,25 @@ function renderAll() {
       .join("");
   }
 
-  // 3. Pantalla "Modificar"
+  // 3. Pantalla "Modificar" (Catálogo de Chile + productos ya cargados)
+  renderChileCatalogSuggestions();
+
   const editQuery = (document.getElementById("editSearchInput").value || "").toLowerCase().trim();
   const filteredEdit = products.filter(
     (p) =>
       !editQuery ||
       p.name.toLowerCase().includes(editQuery) ||
+      (p.brand && p.brand.toLowerCase().includes(editQuery)) ||
       p.barcode.includes(editQuery) ||
       p.category.toLowerCase().includes(editQuery)
   );
+
   document.getElementById("editableProductsList").innerHTML =
     filteredEdit.length === 0
       ? `
         <div class="item-card" style="text-align:center; padding: 24px;">
-          <p style="font-size:1.1rem; font-weight:800;">Aún no has cargado productos</p>
-          <p style="color:#475569; margin-top:6px;">Usa los botones de arriba para escanear o agregar tu primer producto.</p>
+          <p style="font-size:1.1rem; font-weight:800;">Aún no has cargado productos en tu local</p>
+          <p style="color:#475569; margin-top:6px;">Escanea un código arriba o toca cualquier producto de la Base de Datos de Chile para agregarlo solo poniendo tu precio.</p>
         </div>
       `
       : filteredEdit
@@ -374,9 +392,10 @@ function renderAll() {
             return `
               <article class="item-card ${st.cardClass}">
                 <div class="item-top">
-                  <div class="item-emoji" aria-hidden="true">${p.emoji}</div>
+                  ${renderProductThumbHTML(p)}
                   <div class="item-info">
                     <h4 class="item-name">${p.name}</h4>
+                    ${p.brand ? `<span class="item-brand-pill">Marca: ${p.brand}</span>` : ""}
                     <div class="item-price-box">
                       <span class="item-price-label">PRECIO:</span>
                       <strong class="item-price-value">${formatPrice(p.price)}</strong>
@@ -395,7 +414,7 @@ function renderAll() {
           })
           .join("");
 
-  // 4. Pantalla "Qué Comprar" (Asistente inteligente)
+  // 4. Pantalla "Qué Comprar"
   const totalMonthSold = products.reduce((acc, p) => acc + p.soldMonth, 0);
   document.getElementById("monthTotalUnitsSold").textContent = `${totalMonthSold} u.`;
 
@@ -457,7 +476,7 @@ function renderAll() {
             <span class="rec-priority-tag ${rec.priorityCode}">${rec.priorityLabel}</span>
 
             <div class="item-top">
-              <div class="item-emoji">${p.emoji}</div>
+              ${renderProductThumbHTML(p)}
               <div class="item-info">
                 <h4 class="item-name">${p.name}</h4>
                 <div class="item-sub">
@@ -500,6 +519,25 @@ function renderAll() {
   }
 }
 
+// Mostrar sugerencias con mini foto del Catálogo de Minimarket Chile
+function renderChileCatalogSuggestions() {
+  const input = document.getElementById("chileCatalogSearchInput");
+  const container = document.getElementById("chileCatalogSuggestions");
+  if (!input || !container || !window.ChileCatalog) return;
+
+  const list = window.ChileCatalog.searchSuggestions(input.value);
+  container.innerHTML = list
+    .map(
+      (item) => `
+      <button type="button" class="demo-chip" data-pick-chile-barcode="${item.barcode}">
+        <img src="${item.image}" alt="" class="catalog-chip-thumb" />
+        <span style="overflow:hidden; text-overflow:ellipsis;">${item.name}</span>
+      </button>
+    `
+    )
+    .join("");
+}
+
 function switchScreen(screenId) {
   document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
   const target = document.getElementById(`screen-${screenId}`);
@@ -513,19 +551,111 @@ function switchScreen(screenId) {
 }
 
 // =========================================================================
-// FLUJO EDITAR / CREAR PRODUCTO
+// RECONOCIMIENTO AUTOMÁTICO DE PRODUCTO (NOMBRE, MARCA, CATEGORÍA Y MINI FOTO)
 // =========================================================================
-function handleEditBarcodeScanned(barcode) {
+function setCategoryPickerUI(cat, emoji) {
+  selectedNewCat = cat || "Abarrotes";
+  selectedNewEmoji = emoji || "🍚";
+  document.querySelectorAll("#newProdCategoryPicker .cat-pick-btn").forEach((b) => {
+    const isMatch = b.dataset.cat === selectedNewCat;
+    b.classList.toggle("active", isMatch);
+    if (isMatch) selectedNewEmoji = b.dataset.emoji;
+  });
+}
+
+function updateRecognizedPreviewCard({ found, name, brand, image, emoji, statusText }) {
+  const card = document.getElementById("recognizedProductCard");
+  const pill = document.getElementById("recognizedStatusPill");
+  const imgEl = document.getElementById("newProdPreviewImg");
+  const emojiEl = document.getElementById("newProdPreviewEmoji");
+  const nameEl = document.getElementById("recognizedNamePreview");
+  const brandEl = document.getElementById("recognizedBrandPreview");
+
+  card.classList.toggle("not-found", !found);
+  pill.textContent =
+    statusText ||
+    (found
+      ? "✨ Reconocido automáticamente (Solo pon tu precio)"
+      : "✍️ Código nuevo: escribe el nombre y tu precio");
+
+  nameEl.textContent = name || "Producto sin nombre aún";
+  brandEl.textContent = brand ? `Marca: ${brand}` : "Marca: Minimarket";
+
+  currentNewProdImage = image || "";
+  if (currentNewProdImage) {
+    imgEl.src = currentNewProdImage;
+    imgEl.hidden = false;
+    emojiEl.hidden = true;
+  } else {
+    imgEl.hidden = true;
+    emojiEl.textContent = emoji || "📦";
+    emojiEl.hidden = false;
+  }
+}
+
+async function openNewProductModalWithAutoLookup(prefillBarcode = "") {
+  const cleanCode =
+    String(prefillBarcode || "").trim() ||
+    `780${Math.floor(1000000000 + Math.random() * 8999999999)}`;
+
+  document.getElementById("newProdBarcode").value = cleanCode;
+  document.getElementById("newProdPrice").value = "";
+  document.getElementById("newProdStock").value = "12";
+  document.getElementById("newProductModal").hidden = false;
+
+  // Si tenía código, buscarlo automáticamente en el Catálogo de Chile + OpenFoodFacts/OpenProductsFacts
+  if (prefillBarcode && window.ChileCatalog) {
+    updateRecognizedPreviewCard({
+      found: true,
+      name: "Buscando código en base de datos de Chile...",
+      brand: "Consultando...",
+      image: "",
+      emoji: "🔍",
+      statusText: "🔍 Buscando nombre, marca y foto...",
+    });
+
+    const result = await window.ChileCatalog.lookupByBarcode(cleanCode);
+    if (result && result.found) {
+      document.getElementById("newProdName").value = result.name;
+      document.getElementById("newProdBrand").value = result.brand || "";
+      setCategoryPickerUI(result.category, result.emoji);
+      updateRecognizedPreviewCard({
+        found: true,
+        name: result.name,
+        brand: result.brand,
+        image: result.image,
+        emoji: result.emoji,
+      });
+      // Enfocar directo en el PRECIO para que ella solo ponga su valor de venta
+      setTimeout(() => document.getElementById("newProdPrice").focus(), 120);
+      return;
+    }
+  }
+
+  // Si no se encontró en la base de datos, dejar listo para escribir nombre y precio
+  document.getElementById("newProdName").value = "";
+  document.getElementById("newProdBrand").value = "";
+  setCategoryPickerUI("Abarrotes", "🍚");
+  updateRecognizedPreviewCard({
+    found: false,
+    name: "Escribe el nombre abajo",
+    brand: "",
+    image: "",
+    emoji: "📦",
+  });
+  setTimeout(() => document.getElementById("newProdName").focus(), 120);
+}
+
+async function handleEditBarcodeScanned(barcode) {
   const cleanCode = String(barcode).trim();
   playScannerBeep();
   closeModal("cameraModal");
 
-  const found = window.minimarketDB.findProduct(cleanCode);
-  if (found) {
-    openEditProductModal(found);
+  const foundInStore = window.minimarketDB.findProduct(cleanCode);
+  if (foundInStore) {
+    openEditProductModal(foundInStore);
   } else {
-    openNewProductModal(cleanCode);
-    showFeedback(`🆕 Código ${cleanCode} nuevo: ponle nombre y precio para guardarlo`);
+    await openNewProductModalWithAutoLookup(cleanCode);
   }
 }
 
@@ -540,25 +670,39 @@ function openEditProductModal(prod) {
   document.getElementById("editProductModal").hidden = false;
 }
 
-function openNewProductModal(prefillBarcode = "") {
-  const codeInput = document.getElementById("newProdBarcode");
-  codeInput.value = prefillBarcode || `780${Math.floor(1000000000 + Math.random() * 8999999999)}`;
-  document.getElementById("newProdName").value = "";
-  document.getElementById("newProdPrice").value = "";
-  document.getElementById("newProdStock").value = "12";
-  document.getElementById("newProductModal").hidden = false;
-  setTimeout(() => document.getElementById("newProdName").focus(), 100);
+// Redimensionar foto tomada con la cámara del celular a una mini foto ligera (140x140 JPEG)
+function compressImageFileToDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const size = 140;
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        const minSide = Math.min(img.width, img.height);
+        const sx = (img.width - minSide) / 2;
+        const sy = (img.height - minSide) / 2;
+        ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
+        resolve(canvas.toDataURL("image/jpeg", 0.78));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 // =========================================================================
-// LECTOR REAL DE CÓDIGOS DE BARRA Y QR CON LA CÁMARA DEL TELÉFONO
-// Soporta BarcodeDetector nativo (Android Chrome) + ZXing fallback (iOS/otros)
+// LECTOR REAL DE CÓDIGOS DE BARRA Y QR CON LA CÁMARA
 // =========================================================================
 function onRealCodeDetected(rawCode) {
   const code = String(rawCode || "").trim();
   if (!code) return;
 
-  // Protección anti-doble-escaneo (1.8 segundos de espera para el mismo código)
   const now = Date.now();
   if (code === lastScannedCode && now - lastScannedTime < 1800) {
     return;
@@ -588,7 +732,7 @@ async function openCameraScanner(mode) {
     banner.textContent = "🛒 Modo Caja: Apunta al código para sumarlo al carrito";
     banner.classList.remove("edit-mode");
   } else {
-    banner.textContent = "✏️ Modo Modificar: Apunta al código/QR para editar o crear";
+    banner.textContent = "✏️ Modo Modificar: Apunta al código para reconocer el producto";
     banner.classList.add("edit-mode");
   }
 
@@ -597,7 +741,7 @@ async function openCameraScanner(mode) {
   const statusText = document.getElementById("cameraStatusText");
 
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    statusText.textContent = "Cámara no disponible aquí. Usa los botones de abajo o escribe el código.";
+    statusText.textContent = "Cámara no disponible aquí. Escribe el número abajo.";
     return;
   }
 
@@ -616,7 +760,6 @@ async function openCameraScanner(mode) {
     await video.play();
     statusText.textContent = "Apunta al código de barras o QR del producto";
 
-    // Verificar si la cámara del teléfono tiene linterna (torch)
     const track = cameraStream.getVideoTracks()[0];
     if (track && track.getCapabilities) {
       const caps = track.getCapabilities();
@@ -629,12 +772,11 @@ async function openCameraScanner(mode) {
     startBarcodeDetectionLoop(video);
   } catch (_) {
     video.hidden = true;
-    statusText.textContent = "Sin permiso de cámara: toca un producto abajo o escribe el número.";
+    statusText.textContent = "Sin permiso de cámara: escribe el número de código abajo.";
   }
 }
 
 async function startBarcodeDetectionLoop(video) {
-  // 1. Usar BarcodeDetector nativo del teléfono si existe (Android Chrome, ultra rápido)
   if ("BarcodeDetector" in window) {
     try {
       const detector = new window.BarcodeDetector({
@@ -658,7 +800,6 @@ async function startBarcodeDetectionLoop(video) {
     } catch (_) {}
   }
 
-  // 2. Fallback con librería ZXing (para iPhones / Safari y otros navegadores)
   if (window.ZXing && window.ZXing.BrowserMultiFormatReader) {
     try {
       zxingReader = new window.ZXing.BrowserMultiFormatReader();
@@ -706,21 +847,17 @@ function closeModal(modalId) {
 // INICIALIZACIÓN
 // =========================================================================
 document.addEventListener("DOMContentLoaded", async () => {
-  // 1. Iniciar la Base de Datos Local en el Teléfono
   await window.minimarketDB.init();
   renderAll();
 
-  // 2. Registrar Service Worker para que funcione como App instalable (PWA) y sin internet
   if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
     navigator.serviceWorker.register("./sw.js").catch(() => {});
   }
 
-  // Navegación inferior
   document.querySelectorAll("[data-nav]").forEach((btn) => {
     btn.addEventListener("click", () => switchScreen(btn.dataset.nav));
   });
 
-  // Cámara escáner
   document.getElementById("openSaleScannerBtn").addEventListener("click", () => openCameraScanner("sale"));
   document.getElementById("openEditScannerBtn").addEventListener("click", () => openCameraScanner("edit"));
   document.getElementById("toggleTorchBtn").addEventListener("click", toggleTorch);
@@ -729,7 +866,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     btn.addEventListener("click", () => closeModal(btn.dataset.closeModal));
   });
 
-  // Ingreso manual de código en cámara
   document.getElementById("manualBarcodeForm").addEventListener("submit", (e) => {
     e.preventDefault();
     const input = document.getElementById("manualBarcodeInput");
@@ -743,7 +879,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  // Delegación global de toques (Carrito, Botones rápidos, Editar, Recomendaciones)
+  // Delegación global
   document.addEventListener("click", async (e) => {
     const quickSale = e.target.closest("[data-sale-barcode]");
     if (quickSale) {
@@ -751,14 +887,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    const camSim = e.target.closest("[data-camera-sim]");
-    if (camSim) {
-      const code = camSim.dataset.cameraSim;
-      if (scannerMode === "sale") {
-        await addProductToCart(code);
-      } else {
-        handleEditBarcodeScanned(code);
-      }
+    const pickChile = e.target.closest("[data-pick-chile-barcode]");
+    if (pickChile) {
+      const code = pickChile.dataset.pickChileBarcode;
+      await handleEditBarcodeScanned(code);
       return;
     }
 
@@ -797,7 +929,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  // Vaciar carrito, Confirmar Venta y Anular última venta
+  // Carrito y ventas
   document.getElementById("clearCartBtn").addEventListener("click", async () => {
     await window.minimarketDB.clearCart();
     document.getElementById("lastScannedBox").hidden = true;
@@ -839,7 +971,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     renderAll();
     closeModal("editProductModal");
-    showFeedback(`💾 Guardado en el teléfono: ${newName} → ${formatPrice(newPrice)} (${newStock} u.)`);
+    showFeedback(`💾 Guardado: ${newName} → ${formatPrice(newPrice)} (${newStock} u.)`);
   });
 
   document.getElementById("deleteProductBtn").addEventListener("click", async () => {
@@ -852,35 +984,82 @@ document.addEventListener("DOMContentLoaded", async () => {
     showFeedback(`🗑️ Producto eliminado: ${currentEditProduct.name}`);
   });
 
-  // Buscador en menú Modificar
+  // Buscadores en menú Modificar
   document.getElementById("editSearchInput").addEventListener("input", renderAll);
+  document.getElementById("chileCatalogSearchInput").addEventListener("input", renderChileCatalogSuggestions);
 
-  // Crear Producto Nuevo
-  document.getElementById("openNewProductBtn").addEventListener("click", () => openNewProductModal(""));
+  // Modal Agregar Producto Nuevo
+  document.getElementById("openNewProductBtn").addEventListener("click", () =>
+    openNewProductModalWithAutoLookup("")
+  );
+
+  document.getElementById("newStockMinusBtn").addEventListener("click", () => {
+    const inp = document.getElementById("newProdStock");
+    inp.value = Math.max(0, (Number(inp.value) || 0) - 1);
+  });
+  document.getElementById("newStockPlusBtn").addEventListener("click", () => {
+    const inp = document.getElementById("newProdStock");
+    inp.value = Math.max(0, (Number(inp.value) || 0) + 1);
+  });
+
+  // Si escribe o cambia el código manualmente dentro del modal Nuevo Producto, buscarlo en la base de datos de Chile
+  document.getElementById("lookupCodeManualBtn").addEventListener("click", async () => {
+    const code = document.getElementById("newProdBarcode").value.trim();
+    if (code) await openNewProductModalWithAutoLookup(code);
+  });
+
+  // Actualizar vista previa si edita el nombre o marca a mano
+  document.getElementById("newProdName").addEventListener("input", (e) => {
+    document.getElementById("recognizedNamePreview").textContent = e.target.value || "Producto Nuevo";
+  });
+  document.getElementById("newProdBrand").addEventListener("input", (e) => {
+    document.getElementById("recognizedBrandPreview").textContent = e.target.value
+      ? `Marca: ${e.target.value}`
+      : "Marca: Minimarket";
+  });
+
+  // Tomar o elegir mini foto del envase con la cámara del teléfono
+  document.getElementById("newProdPhotoInput").addEventListener("change", async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const dataUrl = await compressImageFileToDataURL(file);
+      currentNewProdImage = dataUrl;
+      const imgEl = document.getElementById("newProdPreviewImg");
+      imgEl.src = dataUrl;
+      imgEl.hidden = false;
+      document.getElementById("newProdPreviewEmoji").hidden = true;
+      showFeedback("📸 Mini foto cargada");
+    } catch (_) {}
+  });
 
   document.getElementById("newProdCategoryPicker").addEventListener("click", (e) => {
     const btn = e.target.closest(".cat-pick-btn");
     if (!btn) return;
-    document.querySelectorAll("#newProdCategoryPicker .cat-pick-btn").forEach((b) =>
-      b.classList.remove("active")
-    );
-    btn.classList.add("active");
-    selectedNewCat = btn.dataset.cat;
-    selectedNewEmoji = btn.dataset.emoji;
+    setCategoryPickerUI(btn.dataset.cat, btn.dataset.emoji);
   });
 
   document.getElementById("newProductForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const barcode = document.getElementById("newProdBarcode").value.trim();
     const name = document.getElementById("newProdName").value.trim();
+    const brand = document.getElementById("newProdBrand").value.trim();
     const price = Math.max(0, Number(document.getElementById("newProdPrice").value) || 0);
     const stock = Math.max(0, Number(document.getElementById("newProdStock").value) || 0);
 
     if (!name) return;
 
+    const finalImage =
+      currentNewProdImage ||
+      (window.ChileCatalog
+        ? window.ChileCatalog.makeThumbSVG("#1d4ed8", "#1e3a8a", selectedNewEmoji, brand || selectedNewCat)
+        : "");
+
     await window.minimarketDB.upsertProduct({
       barcode,
       name,
+      brand,
+      image: finalImage,
       category: selectedNewCat,
       emoji: selectedNewEmoji,
       price,
@@ -889,10 +1068,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     renderAll();
     closeModal("newProductModal");
-    showFeedback(`✅ Guardado en el teléfono: ${name} a ${formatPrice(price)}`);
+    showFeedback(`✅ Guardado: ${name} a ${formatPrice(price)}`);
   });
 
-  // Gestión de copia de seguridad local (Exportar / Importar / Vaciar / Restaurar)
+  // Copia de seguridad
   document.getElementById("exportBackupBtn").addEventListener("click", () => {
     const json = window.minimarketDB.exportBackupJSON();
     const blob = new Blob([json], { type: "application/json" });
@@ -920,7 +1099,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     e.target.value = "";
   });
 
-  // Copiar pedido inteligente para WhatsApp
   document.getElementById("shareListBtn").addEventListener("click", () => {
     const products = window.minimarketDB.getAllProductsWithStats();
     const recs = products

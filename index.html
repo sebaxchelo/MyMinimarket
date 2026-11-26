@@ -168,13 +168,30 @@
             </span>
             <span class="scan-btn-text">
               <strong>ESCANEAR QR / CÓDIGO</strong>
-              <small>Para editar stock o cargar nuevo</small>
+              <small>Reconoce nombre, marca y foto solo</small>
             </span>
           </button>
 
           <button type="button" class="add-manual-full-btn" id="openNewProductBtn">
             ➕ Agregar producto nuevo sin escanear
           </button>
+
+          <!-- BUSCADOR RÁPIDO EN BASE DE DATOS DE MINIMARKET CHILE -->
+          <div class="demo-scan-box">
+            <p class="demo-scan-title">🇨🇱 Base de datos de Chile (toca o busca para cargar solo poniendo tu precio):</p>
+            <div class="big-search-wrap" style="background:#ffffff;">
+              <span class="search-icon" aria-hidden="true">🔍</span>
+              <input
+                type="search"
+                id="chileCatalogSearchInput"
+                placeholder="Ej: Cristal, Quix, Coca, Mistral, Confort, Arroz..."
+                aria-label="Buscar en catálogo de Chile"
+              />
+            </div>
+            <div class="demo-scan-buttons" id="chileCatalogSuggestions">
+              <!-- Sugerencias del catálogo chileno con mini foto -->
+            </div>
+          </div>
         </div>
 
         <div class="screen-top-card">
@@ -400,53 +417,94 @@
   </div>
 
   <!-- ===========================================================
-       MODAL 3: GUARDAR PRODUCTO NUEVO (CON PRECIO DESTACADO)
+       MODAL 3: GUARDAR PRODUCTO NUEVO (RECONOCE NOMBRE, MARCA Y MINI FOTO)
        =========================================================== -->
   <div class="modal-backdrop" id="newProductModal" hidden role="dialog" aria-modal="true" aria-labelledby="newProductModalTitle">
     <div class="modal-sheet">
       <div class="modal-top">
-        <h3 id="newProductModalTitle">➕ Guardar Producto Nuevo</h3>
+        <h3 id="newProductModalTitle">➕ Agregar Producto</h3>
         <button type="button" class="close-big-btn" data-close-modal="newProductModal">✕ Cerrar</button>
       </div>
 
+      <!-- TARJETA VISUAL DEL PRODUCTO RECONOCIDO AUTOMÁTICAMENTE -->
+      <div class="recognized-product-card" id="recognizedProductCard">
+        <div class="recognized-status-pill" id="recognizedStatusPill">
+          ✨ Producto reconocido en base de datos de Chile
+        </div>
+        <div class="recognized-main-row">
+          <div class="mini-photo-wrap">
+            <img id="newProdPreviewImg" class="mini-photo-img" src="" alt="Foto del producto" hidden />
+            <div id="newProdPreviewEmoji" class="mini-photo-fallback">📦</div>
+          </div>
+          <div class="recognized-text-col">
+            <strong id="recognizedNamePreview">Producto Nuevo</strong>
+            <span id="recognizedBrandPreview">Marca: —</span>
+            <label class="take-photo-mini-btn">
+              📸 Cambiar / Tomar foto
+              <input type="file" id="newProdPhotoInput" accept="image/*" capture="environment" hidden />
+            </label>
+          </div>
+        </div>
+      </div>
+
       <form id="newProductForm" class="simple-form">
-        <div class="form-step">
-          <label for="newProdBarcode">1. Código de barras o QR</label>
-          <input type="text" id="newProdBarcode" inputmode="numeric" placeholder="Ej: 7809991234567" required />
-        </div>
-
-        <div class="form-step">
-          <label for="newProdName">2. Nombre del producto</label>
-          <input type="text" id="newProdName" placeholder="Ej: Aceite Maravilla 900ml" required />
-        </div>
-
+        <!-- 1. LO ÚNICO QUE ELLA DEBE PONER OBLIGATORIAMENTE: SU PRECIO -->
         <div class="form-step price-highlight-step">
-          <label for="newProdPrice">3. 💰 Precio de venta al cliente ($)</label>
-          <p class="step-helper">Para que cualquiera que atienda vea el valor exacto sin equivocarse</p>
+          <label for="newProdPrice">1. 💰 ¿A qué precio lo vas a vender tú? ($)</label>
+          <p class="step-helper">Escribe solo el valor al que lo vendes en tu minimarket</p>
           <div class="big-price-input-wrap">
             <span class="currency-prefix">$</span>
             <input type="number" id="newProdPrice" inputmode="numeric" min="0" step="10" placeholder="Ej: 1800" required />
           </div>
         </div>
 
+        <!-- 2. CANTIDAD QUE TIENE AHORA -->
         <div class="form-step">
-          <label for="newProdStock">4. ¿Cuántas unidades tienes ahora?</label>
-          <input type="number" id="newProdStock" inputmode="numeric" min="0" value="10" required />
+          <label for="newProdStock">2. 📦 ¿Cuántas unidades tienes ahora?</label>
+          <div class="edit-stock-stepper">
+            <button type="button" class="step-btn minus" id="newStockMinusBtn">−</button>
+            <input type="number" id="newProdStock" inputmode="numeric" min="0" value="12" required />
+            <button type="button" class="step-btn plus" id="newStockPlusBtn">+</button>
+          </div>
         </div>
 
-        <div class="form-step">
-          <label>5. ¿En qué sector va?</label>
-          <div class="category-picker" id="newProdCategoryPicker">
-            <button type="button" class="cat-pick-btn active" data-cat="Abarrotes" data-emoji="🍚">🍚 Abarrotes</button>
-            <button type="button" class="cat-pick-btn" data-cat="Bebidas" data-emoji="🥤">🥤 Bebidas</button>
-            <button type="button" class="cat-pick-btn" data-cat="Lácteos" data-emoji="🥛">🥛 Lácteos</button>
-            <button type="button" class="cat-pick-btn" data-cat="Pan y Dulces" data-emoji="🍪">🍪 Pan y Dulces</button>
-            <button type="button" class="cat-pick-btn" data-cat="Limpieza" data-emoji="🧹">🧹 Limpieza</button>
+        <!-- 3. DATOS YA RECONOCIDOS (NOMBRE, MARCA, CÓDIGO Y SECTOR) -->
+        <div class="auto-filled-box">
+          <p class="auto-filled-title">✅ Datos reconocidos automáticamente (puedes corregirlos si quieres):</p>
+
+          <div class="form-step">
+            <label for="newProdName">Nombre del producto</label>
+            <input type="text" id="newProdName" placeholder="Ej: Cerveza Cristal Lata 470ml" required />
+          </div>
+
+          <div class="form-step">
+            <label for="newProdBrand">Marca</label>
+            <input type="text" id="newProdBrand" placeholder="Ej: CCU, Colún, Quix, Tucapel..." />
+          </div>
+
+          <div class="form-step">
+            <label for="newProdBarcode">Código de barras</label>
+            <div class="manual-code-row">
+              <input type="text" id="newProdBarcode" inputmode="numeric" placeholder="Ej: 7801900010016" required />
+              <button type="button" class="primary-action-btn" id="lookupCodeManualBtn">Buscar</button>
+            </div>
+          </div>
+
+          <div class="form-step">
+            <label>Sector del minimarket</label>
+            <div class="category-picker" id="newProdCategoryPicker">
+              <button type="button" class="cat-pick-btn active" data-cat="Abarrotes" data-emoji="🍚">🍚 Abarrotes</button>
+              <button type="button" class="cat-pick-btn" data-cat="Bebidas" data-emoji="🥤">🥤 Bebidas</button>
+              <button type="button" class="cat-pick-btn" data-cat="Alcohol" data-emoji="🍺">🍺 Alcohol</button>
+              <button type="button" class="cat-pick-btn" data-cat="Lácteos" data-emoji="🥛">🥛 Lácteos</button>
+              <button type="button" class="cat-pick-btn" data-cat="Pan y Dulces" data-emoji="🍪">🍪 Pan y Dulces</button>
+              <button type="button" class="cat-pick-btn" data-cat="Limpieza" data-emoji="🧹">🧹 Limpieza</button>
+            </div>
           </div>
         </div>
 
         <button type="submit" class="done-full-btn">
-          ✔ Guardar en mi minimarket
+          ✔ Guardar con mi precio
         </button>
       </form>
     </div>
@@ -454,6 +512,8 @@
 
   <!-- Librería ZXing opcional para iOS/navegadores sin BarcodeDetector nativo -->
   <script src="https://unpkg.com/@zxing/library@0.21.2/umd/index.min.js" defer></script>
+  <!-- Catálogo de códigos de barra de Minimarket en Chile (Alimentos, Alcohol, Limpieza) -->
+  <script src="catalog_cl.js"></script>
   <!-- Base de datos local del teléfono -->
   <script src="db.js"></script>
   <!-- Lógica principal de la aplicación -->

@@ -1,8 +1,9 @@
-const CACHE_NAME = "minimarket-cache-v3";
+const CACHE_NAME = "minimarket-cache-v4";
 const ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
+  "./catalog_cl.js",
   "./db.js",
   "./app.js",
   "./manifest.json"

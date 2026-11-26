@@ -10,6 +10,7 @@ const LS_BACKUP_KEY = "minimarket_real_db_v1";
 const CATEGORY_EMOJI_MAP = {
   Abarrotes: "🍚",
   Bebidas: "🥤",
+  Alcohol: "🍺",
   "Lácteos": "🥛",
   "Pan y Dulces": "🍪",
   Limpieza: "🧹",
@@ -154,7 +155,7 @@ class LocalMinimarketDB {
     };
   }
 
-  async upsertProduct({ barcode, name, category, emoji, price, stock, minStock, perishable }) {
+  async upsertProduct({ barcode, name, brand, image, category, emoji, price, stock, minStock, perishable }) {
     const cleanCode = String(barcode).trim();
     const idx = this.state.products.findIndex((p) => p.barcode === cleanCode);
     const cat = category || "Abarrotes";
@@ -168,6 +169,8 @@ class LocalMinimarketDB {
       this.state.products[idx] = {
         ...this.state.products[idx],
         name: name !== undefined ? name : this.state.products[idx].name,
+        brand: brand !== undefined ? brand : this.state.products[idx].brand || "",
+        image: image !== undefined ? image : this.state.products[idx].image || "",
         category: category !== undefined ? category : this.state.products[idx].category,
         emoji: emoji !== undefined ? emoji : this.state.products[idx].emoji,
         price: Math.max(0, Number(price)),
@@ -180,6 +183,8 @@ class LocalMinimarketDB {
       this.state.products.unshift({
         barcode: cleanCode,
         name: name.trim(),
+        brand: (brand || "").trim(),
+        image: image || "",
         category: cat,
         emoji: resolvedEmoji,
         price: Math.max(0, Number(price) || 0),
