@@ -1059,6 +1059,181 @@ input {
   flex-shrink: 0;
 }
 
+/* Elementos base para el cambio móvil vs escritorio */
+.app-header {
+  justify-content: space-between;
+}
+
+.device-mode-badge {
+  background: var(--primary-soft);
+  border: 2px solid var(--primary);
+  color: var(--primary-dark);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.badge-desktop-text {
+  display: none;
+}
+
+.desktop-nav-title {
+  display: none;
+}
+
+.pos-desktop-grid,
+.pos-left-col,
+.pos-right-col,
+.two-col-desktop-grid,
+.desktop-col-left,
+.desktop-col-right {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* ==========================================================================
+   MODO COMPUTADOR / ESCRITORIO (>= 960px)
+   Diseño amplio de Punto de Venta (POS) con Menú Lateral y Doble Columna
+   ========================================================================== */
+
+@media (min-width: 960px) {
+  .phone-frame {
+    max-width: 1440px;
+    padding-bottom: 0;
+    box-shadow: none;
+    background: var(--bg-page);
+  }
+
+  .app-header {
+    padding: 16px 32px;
+    border-bottom: 2px solid var(--border-strong);
+  }
+
+  .badge-mobile-text {
+    display: none;
+  }
+
+  .badge-desktop-text {
+    display: inline;
+  }
+
+  .workspace-layout {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    min-height: calc(100vh - 80px);
+    align-items: start;
+  }
+
+  /* La barra inferior del teléfono se transforma en un Menú Lateral Izquierdo fijo en PC */
+  .bottom-nav {
+    position: sticky;
+    top: 80px;
+    left: auto;
+    bottom: auto;
+    transform: none;
+    max-width: none;
+    width: 280px;
+    height: calc(100vh - 80px);
+    background: #ffffff;
+    border-top: none;
+    border-right: 2px solid var(--border-card);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 24px 18px;
+    box-shadow: none;
+  }
+
+  .desktop-nav-title {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-soft);
+    padding: 0 8px 6px;
+  }
+
+  .bottom-nav-btn {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 14px;
+    padding: 16px 18px;
+    border-radius: 18px;
+    width: 100%;
+    text-align: left;
+  }
+
+  .nav-icon {
+    font-size: 28px;
+  }
+
+  .nav-text {
+    font-size: 1.05rem;
+  }
+
+  .nav-alert-pill,
+  .nav-cart-pill {
+    position: static;
+    margin-left: auto;
+    min-width: 28px;
+    height: 28px;
+    font-size: 0.85rem;
+  }
+
+  .app-main {
+    padding: 28px 32px 48px;
+  }
+
+  /* Pantalla 1 (Vender): Caja a la izquierda y Carrito del Cliente fijo a la derecha */
+  .pos-desktop-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(380px, 0.95fr);
+    gap: 24px;
+    align-items: start;
+  }
+
+  .pos-right-col {
+    position: sticky;
+    top: 104px;
+  }
+
+  /* Pantalla 2 (Ver Stock): Grilla amplia de 2 o 3 columnas */
+  .multi-col-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 18px;
+  }
+
+  /* Pantalla 3 (Modificar) y Pantalla 4 (Qué Comprar): 2 Columnas lado a lado */
+  .two-col-desktop-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    gap: 24px;
+    align-items: start;
+  }
+
+  .demo-scan-buttons {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Modales centrados como ventana en PC en vez de hoja inferior */
+  .modal-backdrop {
+    align-items: center;
+    padding: 24px;
+  }
+
+  .modal-sheet {
+    max-width: 620px;
+    border-radius: 26px;
+    padding: 26px 28px;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35);
+  }
+}
+
 .product-list {
   display: flex;
   flex-direction: column;
